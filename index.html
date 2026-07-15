@@ -268,8 +268,8 @@ const CONFIG = {
   wedge_min_chars: 4,                   // shortest code a scanner gun sends
   wedge_max_gap_ms: 45,                 // keystroke gap that distinguishes gun vs human typing
   roles: {
-    admin:   ['dashboard','pos','products','inventory','customers','suppliers','po','reports','notify','connectors','users','settings'],
-    manager: ['dashboard','pos','products','inventory','customers','suppliers','po','reports','notify','settings'],
+    admin:   ['dashboard','pos','products','inventory','customers','suppliers','po','reports','notify','connectors','users','settings','b2b'],
+    manager: ['dashboard','pos','products','inventory','customers','suppliers','po','reports','notify','settings','b2b'],
     cashier: ['pos','customers'],
     stock:   ['products','inventory','po']
   }
@@ -292,9 +292,9 @@ $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()})
 
 /* ═══════════ INDEXEDDB (local tier — "the best local DB" in a browser) ═══════════ */
 const IDB={
-  db:null, STORES:['Users','Products','Sales','Sale_Items','Customers','Suppliers','Purchase_Orders','PO_Items','Inventory_Log','Notify_Log','Connectors','Config','SyncQueue'],
+  db:null, STORES:['Users','Products','Sales','Sale_Items','Customers','Suppliers','Purchase_Orders','PO_Items','Inventory_Log','Notify_Log','Connectors','Config','SyncQueue','B2B_Deals','B2B_Log'],
   open(){return new Promise((res,rej)=>{
-    const rq=indexedDB.open('nexmart',1);
+    const rq=indexedDB.open('nexmart',2);
     rq.onupgradeneeded=e=>{const db=e.target.result;IDB.STORES.forEach(s=>{if(!db.objectStoreNames.contains(s))db.createObjectStore(s,{keyPath:s==='Config'?'key':'id'})})};
     rq.onsuccess=e=>{IDB.db=e.target.result;res()};rq.onerror=()=>rej(rq.error);
   })},
