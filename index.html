@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0B1F3A">
+<meta name="author" content="Developed by NEXARCH, Powered by CYRABELL — NEXARCH Systems Engineering">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NEXMART · Retail Store Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════ NEXARCH / CYRABELL DESIGN TOKENS ═══════════ */
+:root{
+  --navy:#0B1F3A; --navy-2:#122B4E; --navy-3:#1A3A66;
+  --cyan:#00C2D1; --cyan-dim:#0891A0; --cyan-glow:rgba(0,194,209,.28);
+  --ink:#17233A; --ink-2:#4A5A75; --ink-3:#8494AC;
+  --paper:#F2F5F9; --card:#FFFFFF; --line:#DCE4EE;
+  --ok:#14A36A; --warn:#E09B0C; --bad:#D64545;
+  --display:'Chakra Petch',sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+  --r:12px; --shadow:0 2px 10px rgba(11,31,58,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:var(--body);font-size:14px;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:8px;padding:9px 12px;width:100%;outline:none;transition:border-color .15s}
+input[type=date]{color-scheme:light;cursor:pointer;min-height:41px;-webkit-appearance:none;appearance:none}
+input[type=date]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.6}
+.rangebar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rangebar input[type=date]{width:auto;min-height:0;padding:6px 8px;font-size:12.5px}
+.rangebar .sep{color:var(--ink-3);font-size:12px}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan)}
+label{display:block;font-size:11.5px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 4px}
+h1,h2,h3{font-family:var(--display)}
+a{color:var(--cyan-dim)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#C3CEDD;border-radius:4px}
+
+/* ═══════════ LOGIN ═══════════ */
+#login{position:fixed;inset:0;background:linear-gradient(155deg,var(--navy) 0%,#081629 60%,#0D2647 100%);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+#login .panel{width:100%;max-width:380px;background:rgba(255,255,255,.04);border:1px solid rgba(0,194,209,.25);border-radius:16px;padding:34px 30px;backdrop-filter:blur(8px)}
+#login .hex{width:52px;height:58px;margin:0 auto 14px;background:var(--cyan);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:24px;color:var(--navy)}
+#login h1{color:#fff;text-align:center;font-size:26px;letter-spacing:.14em}
+#login h1 span{color:var(--cyan)}
+#login .tag{color:#7E93B4;text-align:center;font-size:11px;letter-spacing:.24em;text-transform:uppercase;margin:6px 0 26px}
+#login label{color:#7E93B4}
+#login input,#login select{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#fff}
+#login input:focus{border-color:var(--cyan)}
+#login .err{color:#FF8080;font-size:12.5px;margin-top:12px;min-height:16px;text-align:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;font-size:14px;padding:10px 18px;border-radius:9px;transition:filter .15s,transform .05s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--cyan);color:var(--navy)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{border:1.5px solid var(--line);color:var(--ink-2)}
+.btn-ghost:hover{border-color:var(--cyan);color:var(--cyan-dim)}
+.btn-danger{background:#FBE9E9;color:var(--bad)}
+.btn-block{width:100%;margin-top:20px;padding:12px}
+.btn-sm{padding:6px 11px;font-size:12.5px;border-radius:7px}
+
+/* ═══════════ APP SHELL ═══════════ */
+#app{display:none;height:100%;}
+#app.on{display:grid;grid-template-columns:222px 1fr;grid-template-rows:56px 1fr;grid-template-areas:"side top" "side main"}
+#side{grid-area:side;background:var(--navy);color:#B9C7DC;display:flex;flex-direction:column;overflow-y:auto}
+#side .brand{display:flex;align-items:center;gap:10px;padding:16px 18px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+#side .brand .hex{width:30px;height:34px;background:var(--cyan);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);flex:none;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:15px;color:var(--navy)}
+#side .brand b{font-family:var(--display);font-size:16px;letter-spacing:.1em;color:#fff}
+#side .brand b span{color:var(--cyan)}
+#side nav{padding:10px 8px;flex:1}
+#side nav .grp{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#5D7396;padding:14px 12px 6px}
+#side nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:9.5px 12px;border-radius:8px;font-size:13.5px;font-weight:500;color:#B9C7DC;margin-bottom:2px}
+#side nav button svg{width:17px;height:17px;flex:none;opacity:.75}
+#side nav button:hover{background:rgba(255,255,255,.06);color:#fff}
+#side nav button.on{background:var(--cyan-glow);color:var(--cyan);font-weight:600}
+#side nav button.on svg{opacity:1}
+#side .foot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.07);font-size:11px;color:#5D7396;font-family:var(--mono)}
+
+#top{grid-area:top;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:0 16px;z-index:5}
+#burger{display:none;font-size:20px;padding:6px}
+/* SIGNATURE: the global scan bar */
+#scanwrap{flex:1;max-width:560px;position:relative}
+#scanbar{display:flex;align-items:center;gap:9px;background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:0 12px;overflow:hidden;position:relative}
+#scanbar.armed{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow)}
+#scanbar .beam{position:absolute;top:0;bottom:0;width:46px;background:linear-gradient(90deg,transparent,var(--cyan-glow),transparent);animation:beam 2.4s linear infinite;pointer-events:none;opacity:0}
+#scanbar.armed .beam{opacity:1}
+@keyframes beam{0%{left:-50px}100%{left:110%}}
+#scanbar input{border:none;background:transparent;padding:10px 0;font-family:var(--mono);font-size:13.5px}
+#scanbar input:focus{border:none}
+#scanbar .ico{color:var(--ink-3);flex:none;display:flex}
+#camBtn{flex:none;color:var(--cyan-dim);padding:6px;display:flex}
+#camBtn:hover{color:var(--cyan)}
+#top .sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:99px;font-family:var(--mono)}
+.pill .dot{width:7px;height:7px;border-radius:50%}
+.pill.cloud{background:#E2F7F9;color:var(--cyan-dim)}.pill.cloud .dot{background:var(--cyan)}
+.pill.local{background:#FFF4DE;color:#9A6B00}.pill.local .dot{background:var(--warn)}
+.pill.off{background:#FBE9E9;color:var(--bad)}.pill.off .dot{background:var(--bad)}
+#userchip{display:flex;align-items:center;gap:9px;font-size:13px}
+#userchip .av{width:32px;height:32px;border-radius:50%;background:var(--navy);color:var(--cyan);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:13px}
+#userchip small{display:block;color:var(--ink-3);font-size:11px}
+
+#main{grid-area:main;overflow-y:auto;padding:20px;padding-bottom:80px}
+.pagehead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.pagehead h2{font-size:20px;letter-spacing:.04em;color:var(--navy)}
+.pagehead .sub{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Cards / KPIs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow);border-top:3px solid var(--cyan)}
+.kpi .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+.kpi .val{font-family:var(--display);font-size:24px;font-weight:700;color:var(--navy);margin-top:5px}
+.kpi .sub{font-size:11.5px;color:var(--ink-3);margin-top:3px;font-family:var(--mono)}
+.kpi.warn{border-top-color:var(--warn)}.kpi.bad{border-top-color:var(--bad)}.kpi.ok{border-top-color:var(--ok)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:16px}
+.card h3{font-size:14px;letter-spacing:.05em;color:var(--navy);margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+/* Tables */
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);text-align:left;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:9px 10px;border-bottom:1px solid #ECF1F7;vertical-align:middle}
+tr:hover td{background:#F7FAFD}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:12.5px}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2.5px 9px;border-radius:99px}
+.tag.ok{background:#E4F5EC;color:var(--ok)}.tag.warn{background:#FFF4DE;color:#9A6B00}.tag.bad{background:#FBE9E9;color:var(--bad)}.tag.info{background:#E2F7F9;color:var(--cyan-dim)}
+.empty{text-align:center;color:var(--ink-3);padding:34px 10px;font-size:13px}
+.empty b{display:block;font-family:var(--display);color:var(--ink-2);font-size:15px;margin-bottom:5px}
+
+/* ═══════════ POS ═══════════ */
+.pos{display:grid;grid-template-columns:1fr 360px;gap:16px;align-items:start}
+.pos-catalog .cats{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+.pos-catalog .cats button{font-size:12px;font-weight:600;padding:6px 13px;border-radius:99px;border:1.5px solid var(--line);background:#fff;color:var(--ink-2)}
+.pos-catalog .cats button.on{background:var(--navy);border-color:var(--navy);color:var(--cyan)}
+.prodgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.pcard{background:#fff;border:1.5px solid var(--line);border-radius:11px;padding:11px;text-align:left;transition:border-color .12s}
+.pcard:hover{border-color:var(--cyan)}
+.pcard .nm{font-weight:600;font-size:12.5px;line-height:1.3;min-height:32px}
+.pcard .pr{font-family:var(--mono);font-weight:600;color:var(--cyan-dim);font-size:13px;margin-top:6px}
+.pcard .st{font-size:10.5px;color:var(--ink-3);font-family:var(--mono)}
+.pcard.out{opacity:.45}
+.cart{background:#fff;border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);position:sticky;top:0}
+.cart h3{padding:13px 16px;border-bottom:1px solid var(--line);font-size:14px;letter-spacing:.05em;display:flex;justify-content:space-between;align-items:center}
+.cart .lines{max-height:320px;overflow-y:auto;padding:6px 0}
+.cline{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:8px 16px;border-bottom:1px solid #F0F4F9;font-size:13px}
+.cline .nm{font-weight:600}
+.cline .qtyrow{display:flex;align-items:center;gap:8px;color:var(--ink-3);font-size:12px}
+.cline .qtyrow button{width:24px;height:24px;border-radius:6px;border:1.5px solid var(--line);font-weight:700;line-height:1}
+.cline .amt{font-family:var(--mono);text-align:right;font-weight:600}
+.cline .rm{color:var(--bad);font-size:11px;text-align:right}
+.cart .totals{padding:12px 16px;border-top:1px solid var(--line);font-size:13px}
+.cart .totals .row{display:flex;justify-content:space-between;padding:3px 0}
+.cart .totals .grand{font-family:var(--display);font-size:21px;font-weight:700;color:var(--navy)}
+.cart .paybtns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 16px 16px}
+.cart .paybtns .btn{padding:11px 4px;font-size:12.5px}
+
+/* Modal / toast / camera */
+#modal{position:fixed;inset:0;background:rgba(11,31,58,.55);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+#modal.on{display:flex}
+#modal .box{background:#fff;border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:22px}
+#modal .box h3{font-size:16px;color:var(--navy);margin-bottom:6px}
+#modal .mact{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
+#toasts{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center;width:min(92vw,440px)}
+.toast{background:var(--navy);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);border-left:3px solid var(--cyan);animation:pop .2s ease;width:100%}
+.toast.bad{border-left-color:var(--bad)}.toast.ok{border-left-color:var(--ok)}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+#camview{width:100%;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:cover}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.formgrid .full{grid-column:1/-1}
+canvas.chart{width:100%;height:230px;display:block}
+.searchrow{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.searchrow input{max-width:280px}
+.switch{display:flex;gap:0;border:1.5px solid var(--line);border-radius:9px;overflow:hidden;width:max-content}
+.switch button{padding:8px 16px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.switch button.on{background:var(--navy);color:var(--cyan)}
+.note{font-size:12px;color:var(--ink-3);line-height:1.5;margin-top:8px}
+.mono{font-family:var(--mono);font-size:12px}
+
+/* ═══════════ MOBILE ═══════════ */
+@media(max-width:920px){
+  #app.on{grid-template-columns:1fr;grid-template-areas:"top" "main"}
+  #side{position:fixed;inset:0 28% 0 0;z-index:50;transform:translateX(-102%);transition:transform .22s;box-shadow:4px 0 24px rgba(0,0,0,.3)}
+  #side.open{transform:none}
+  #burger{display:block}
+  .pos{grid-template-columns:1fr}
+  .cart{position:static}
+  .grid2,.grid3,.formgrid{grid-template-columns:1fr}
+  #userchip .meta{display:none}
+  #main{padding:14px;padding-bottom:90px}
+}
+@media(prefers-reduced-motion:reduce){#scanbar .beam{animation:none}}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<div id="login">
+  <div class="panel">
+    <div class="hex">N</div>
+    <h1>NEX<span>MART</span></h1>
+    <div class="tag">Retail Store Management</div>
+    <div style="font-size:10.5px;letter-spacing:.4px;color:rgba(255,255,255,.45);margin:-4px 0 14px">Developed by <b style="color:var(--cyan)">NEXARCH</b> · Powered by <b style="color:var(--cyan)">CYRABELL</b></div>
+    <label>Data mode</label>
+    <select id="lgMode">
+      <option value="local">Local — this device (offline, IndexedDB)</option>
+      <option value="cloud">Cloud — Google Sheets backend</option>
+    </select>
+    <label>Username</label>
+    <input id="lgUser" autocomplete="username" placeholder="admin">
+    <label>Password</label>
+    <input id="lgPass" type="password" autocomplete="current-password" placeholder="••••••••">
+    <button class="btn btn-primary btn-block" onclick="Auth.login()">Sign in</button>
+    <div class="err" id="lgErr"></div>
+  </div>
+</div>
+
+<!-- ═══════════ APP SHELL ═══════════ -->
+<div id="app">
+  <aside id="side">
+    <div class="brand"><div class="hex">N</div><b>NEX<span>MART</span></b></div>
+    <nav id="nav"></nav>
+    <div class="foot">Developed by NEXARCH<br>Powered by CYRABELL<br>v1.0 · Precision. Scale. Control.</div>
+  </aside>
+
+  <header id="top">
+    <button id="burger" onclick="document.getElementById('side').classList.toggle('open')">☰</button>
+    <div id="scanwrap">
+      <div id="scanbar">
+        <div class="beam"></div>
+        <span class="ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5v14M7 5v14M11 5v14M15 5v9M19 5v14M21 5v14"/></svg></span>
+        <input id="scanInput" placeholder="Scan barcode / RFID — or type SKU and press Enter" autocomplete="off">
+        <button id="camBtn" title="Scan with camera" onclick="Scanner.openCamera()"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+      </div>
+    </div>
+    <div class="sp"></div>
+    <span class="pill cloud" id="modePill"><span class="dot"></span><span id="modeTxt">CLOUD</span></span>
+    <div id="userchip">
+      <div class="av" id="uAv">A</div>
+      <div class="meta"><b id="uName">Admin</b><small id="uRole">admin</small></div>
+      <button class="btn btn-ghost btn-sm" onclick="Auth.logout()">Sign out</button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+</div>
+
+<div id="modal"><div class="box" id="modalBox"></div></div>
+<div id="toasts"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   NEXMART · CYRABELL Retail Configuration
+   Everything a deployer needs to change lives in this block.
+════════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  app: 'NEXMART',
+  store_name: 'NEXMART Store',
+  currency: '₱',
+  tax_rate: 0.12,                       // PH VAT default; overridable per product
+  loyalty_per: 100,                     // 1 point per ₱100
+  // Paste your Apps Script Web App URL (ends in /exec) to enable CLOUD mode:
+  api_url: 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE',
+  categories: ['Grocery','Beverages','Snacks','Personal Care','Household','Frozen','Electronics','Apparel'],
+  payment_methods: ['Cash','GCash','Card'],
+  wedge_min_chars: 4,                   // shortest code a scanner gun sends
+  wedge_max_gap_ms: 45,                 // keystroke gap that distinguishes gun vs human typing
+  roles: {
+    admin:   ['dashboard','pos','products','inventory','customers','suppliers','po','reports','notify','connectors','users','settings'],
+    manager: ['dashboard','pos','products','inventory','customers','suppliers','po','reports','notify','settings'],
+    cashier: ['pos','customers'],
+    stock:   ['products','inventory','po']
+  }
+};
+
+/* ═══════════ UTILITIES ═══════════ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const uid=()=>crypto.randomUUID().replace(/-/g,'').slice(0,16);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>CONFIG.currency+Number(n||0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const nowISO=()=>new Date().toISOString();
+const dstr=ts=>{const d=new Date(ts);return isNaN(d)?'':d.toLocaleString('en-PH',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})};
+const localDate=ts=>{const d=ts?new Date(ts):new Date();return isNaN(d)?'':d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const truthy=v=>v===true||String(v).toLowerCase()==='true'||v===1||v==='1';
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function toast(msg,kind=''){const t=document.createElement('div');t.className='toast '+kind;t.textContent=msg;$('#toasts').appendChild(t);setTimeout(()=>t.remove(),3400)}
+function modal(html){$('#modalBox').innerHTML=html;$('#modal').classList.add('on')}
+function closeModal(){$('#modal').classList.remove('on')}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+/* ═══════════ INDEXEDDB (local tier — "the best local DB" in a browser) ═══════════ */
+const IDB={
+  db:null, STORES:['Users','Products','Sales','Sale_Items','Customers','Suppliers','Purchase_Orders','PO_Items','Inventory_Log','Notify_Log','Connectors','Config','SyncQueue'],
+  open(){return new Promise((res,rej)=>{
+    const rq=indexedDB.open('nexmart',1);
+    rq.onupgradeneeded=e=>{const db=e.target.result;IDB.STORES.forEach(s=>{if(!db.objectStoreNames.contains(s))db.createObjectStore(s,{keyPath:s==='Config'?'key':'id'})})};
+    rq.onsuccess=e=>{IDB.db=e.target.result;res()};rq.onerror=()=>rej(rq.error);
+  })},
+  tx(store,mode='readonly'){return IDB.db.transaction(store,mode).objectStore(store)},
+  all(store){return new Promise(res=>{const r=IDB.tx(store).getAll();r.onsuccess=()=>res(r.result||[])})},
+  get(store,key){return new Promise(res=>{const r=IDB.tx(store).get(key);r.onsuccess=()=>res(r.result||null)})},
+  put(store,rec){return new Promise(res=>{const r=IDB.tx(store,'readwrite').put(rec);r.onsuccess=()=>res(rec)})},
+  del(store,key){return new Promise(res=>{const r=IDB.tx(store,'readwrite').delete(key);r.onsuccess=()=>res()})}
+};
+
+/* ═══════════ DATASTORE — dual driver: LOCAL (IndexedDB) / CLOUD (Apps Script) ═══════════ */
+const Store={
+  mode:'local', token:null, online:navigator.onLine, cache:{},
+  async api(action,payload){
+    const r=await fetch(CONFIG.api_url,{method:'POST',body:JSON.stringify({action,token:Store.token,payload})});
+    const j=await r.json();
+    if(j.error==='AUTH'){Auth.logout();throw new Error('Session expired')}
+    if(!j.ok&&j.error)throw new Error(j.message||j.error);
+    return j;
+  },
+  async list(entity,force=false){
+    if(Store.mode==='local')return IDB.all(entity);
+    if(!force&&Store.cache[entity])return Store.cache[entity];
+    try{const j=await Store.api('list',{entity});Store.cache[entity]=j.rows;
+      for(const r of j.rows)await IDB.put(entity,r);            // mirror for offline reads
+      return j.rows;
+    }catch(e){ if(!Store.online){toast('Offline — showing device copy','bad');return IDB.all(entity)} throw e }
+  },
+  async save(entity,rec,isNew){
+    rec.id=rec.id||uid();
+    if('updated_at' in rec||['Products'].includes(entity))rec.updated_at=nowISO();
+    await IDB.put(entity,rec); delete Store.cache[entity];
+    if(Store.mode==='cloud')await Store.queueOrSend(isNew?'create':'update',{entity,record:rec});
+    return rec;
+  },
+  async remove(entity,id){
+    await IDB.del(entity,id); delete Store.cache[entity];
+    if(Store.mode==='cloud')await Store.queueOrSend('delete',{entity,id});
+  },
+  async queueOrSend(action,payload){
+    if(Store.online){try{await Store.api(action,payload);return}catch(e){/* fall through to queue */}}
+    await IDB.put('SyncQueue',{id:uid(),ref:uid(),action,payload,ts:nowISO()});
+    updatePill();
+  },
+  async flushQueue(){
+    if(Store.mode!=='cloud'||!Store.online)return;
+    const ops=await IDB.all('SyncQueue');
+    if(!ops.length)return;
+    try{
+      const j=await Store.api('batch_sync',{ops:ops.map(o=>({ref:o.id,action:o.action,payload:o.payload}))});
+      for(const r of j.results)if(r.ok)await IDB.del('SyncQueue',r.ref);
+      const left=(await IDB.all('SyncQueue')).length;
+      toast(left?`Synced with ${left} pending`:'All changes synced to cloud','ok');
+      Store.cache={}; updatePill();
+    }catch(e){/* retry later */}
+  }
+};
+window.addEventListener('online',()=>{Store.online=true;updatePill();Store.flushQueue()});
+window.addEventListener('offline',()=>{Store.online=false;updatePill()});
+setInterval(()=>Store.flushQueue(),60000);
+async function updatePill(){
+  const pending=(await IDB.all('SyncQueue')).length;
+  const p=$('#modePill'),t=$('#modeTxt');
+  if(Store.mode==='local'){p.className='pill local';t.textContent='LOCAL DEVICE'}
+  else if(!Store.online){p.className='pill off';t.textContent='OFFLINE'+(pending?` · ${pending} queued`:'')}
+  else{p.className='pill cloud';t.textContent='CLOUD'+(pending?` · syncing ${pending}`:'')}
+}
+
+/* ═══════════ AUTH ═══════════ */
+const Auth={
+  user:null,
+  async login(){
+    const mode=$('#lgMode').value,u=$('#lgUser').value.trim(),pw=$('#lgPass').value;
+    $('#lgErr').textContent='';
+    try{
+      Store.mode=mode;
+      if(mode==='cloud'){
+        if(!/^https:\/\/script\.google\.com/.test(CONFIG.api_url))throw new Error('Set CONFIG.api_url to your Apps Script /exec URL first.');
+        const j=await Store.api('login',{username:u,password:pw});
+        if(!j.ok)throw new Error(j.error);
+        Store.token=j.token;Auth.user=j.user;
+      }else{
+        await Seed.ensure();
+        const users=await IDB.all('Users');
+        const me=users.find(x=>x.username.toLowerCase()===u.toLowerCase()&&truthy(x.active));
+        if(!me||await sha256(pw+me.salt)!==me.pass_hash)throw new Error('Invalid username or password.');
+        Auth.user={id:me.id,username:me.username,name:me.name,role:me.role};
+      }
+      sessionStorage.setItem('nx_sess',JSON.stringify({mode,token:Store.token,user:Auth.user}));
+      Auth.enter();
+    }catch(e){$('#lgErr').textContent=e.message}
+  },
+  enter(){
+    $('#login').style.display='none';$('#app').classList.add('on');
+    $('#uName').textContent=Auth.user.name;$('#uRole').textContent=Auth.user.role;
+    $('#uAv').textContent=(Auth.user.name||'?')[0].toUpperCase();
+    Nav.build();updatePill();
+    Router.go(Auth.user.role==='cashier'?'pos':(CONFIG.roles[Auth.user.role]||['pos'])[0]);
+    Store.flushQueue();
+  },
+  logout(){sessionStorage.removeItem('nx_sess');location.reload()},
+  restore(){
+    const s=sessionStorage.getItem('nx_sess');if(!s)return false;
+    try{const j=JSON.parse(s);Store.mode=j.mode;Store.token=j.token;Auth.user=j.user;Auth.enter();return true}catch(e){return false}
+  }
+};
+
+/* ═══════════ SEED (local demo data) ═══════════ */
+const Seed={
+  async ensure(){
+    if((await IDB.all('Users')).length)return;
+    const salt=uid();
+    await IDB.put('Users',{id:uid(),username:'admin',name:'Administrator',role:'admin',salt,pass_hash:await sha256('nexmart2026'+salt),email:'',phone:'',active:true,created_at:nowISO()});
+    const demo=[
+      ['4800016641503','Coffee 3-in-1 Twin Pack','Beverages',7.5,10,120,30],
+      ['4801981112320','Instant Noodles Beef','Grocery',9.8,14,200,50],
+      ['4902430355148','Shampoo Sachet 12ml','Personal Care',4.2,6.5,300,60],
+      ['4800361413480','Soda 1.5L','Beverages',52,68,48,12],
+      ['0123456789012','Corned Beef 150g','Grocery',28,36,80,20],
+      ['4806508933316','Dishwashing Liquid 250ml','Household',32,45,35,10],
+      ['4800092551305','Biscuit Snack Pack','Snacks',5.5,8,150,40],
+      ['0712345678911','Rice 5kg Premium','Grocery',230,275,25,8]
+    ];
+    for(const[bc,name,cat,cost,price,stock,rl]of demo)
+      await IDB.put('Products',{id:uid(),sku:'SKU-'+bc.slice(-6),barcode:bc,rfid_tag:'',name,category:cat,supplier_id:'',cost,price,tax_rate:CONFIG.tax_rate,stock,reorder_level:rl,unit:'pcs',image_url:'',active:true,updated_at:nowISO()});
+  }
+};
+
+/* ═══════════ NAV / ROUTER ═══════════ */
+const ICONS={
+  dashboard:'<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>',
+  pos:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>',
+  products:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7L12 12l8.7-5M12 22V12"/>',
+  inventory:'<path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',
+  customers:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  suppliers:'<rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+  po:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/>',
+  reports:'<path d="M18 20V10M12 20V4M6 20v-6"/>',
+  notify:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>',
+  connectors:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+};
+const MENU=[
+  ['OPERATE',[['pos','Point of Sale'],['dashboard','Dashboard']]],
+  ['MANAGE',[['products','Products'],['inventory','Inventory'],['customers','Customers'],['suppliers','Suppliers'],['po','Purchase Orders']]],
+  ['INTELLIGENCE',[['reports','BI Reports']]],
+  ['SYSTEM',[['notify','Notifications'],['connectors','Connectors'],['users','Users'],['settings','Settings']]]
+];
+const Nav={
+  build(){
+    const allowed=CONFIG.roles[Auth.user.role]||[];
+    $('#nav').innerHTML=MENU.map(([grp,items])=>{
+      const vis=items.filter(([k])=>allowed.includes(k));
+      if(!vis.length)return'';
+      return `<div class="grp">${grp}</div>`+vis.map(([k,lbl])=>
+        `<button data-v="${k}" onclick="Router.go('${k}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[k]}</svg>${lbl}</button>`).join('');
+    }).join('');
+  }
+};
+const Router={
+  view:'',
+  go(v){
+    if(!(CONFIG.roles[Auth.user.role]||[]).includes(v))return toast('Not permitted for your role','bad');
+    Router.view=v;
+    $$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+    $('#side').classList.remove('open');
+    Views[v]();
+  }
+};
+
+/* ═══════════ SCANNER — keyboard wedge (barcode gun / RFID reader) + phone camera ═══════════ */
+const Scanner={
+  buf:'',last:0,
+  init(){
+    // Keyboard-wedge: most handheld barcode guns and UHF/HF RFID readers type
+    // their payload as rapid keystrokes ending in Enter. We watch keystroke
+    // timing globally, so a scan works from any screen without focusing a field.
+    document.addEventListener('keydown',e=>{
+      const tgt=e.target;
+      const inField=tgt.tagName==='INPUT'||tgt.tagName==='TEXTAREA'||tgt.tagName==='SELECT';
+      const t=Date.now();
+      if(e.key==='Enter'){
+        if(Scanner.buf.length>=CONFIG.wedge_min_chars&&t-Scanner.last<=CONFIG.wedge_max_gap_ms*3){
+          const code=Scanner.buf;Scanner.buf='';
+          if(!inField||tgt.id==='scanInput'){e.preventDefault();Scanner.handle(code)}
+        }else Scanner.buf='';
+        return;
+      }
+      if(e.key.length===1){
+        if(t-Scanner.last>CONFIG.wedge_max_gap_ms)Scanner.buf='';
+        Scanner.buf+=e.key;Scanner.last=t;
+        if(!inField)$('#scanbar').classList.add('armed');
+      }
+    });
+    $('#scanInput').addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&e.target.value.trim()){Scanner.handle(e.target.value.trim());e.target.value=''}
+    });
+    $('#scanInput').addEventListener('focus',()=>$('#scanbar').classList.add('armed'));
+    $('#scanInput').addEventListener('blur',()=>$('#scanbar').classList.remove('armed'));
+  },
+  async handle(code){
+    $('#scanbar').classList.remove('armed');
+    const prods=await Store.list('Products');
+    const hit=prods.find(p=>p.barcode===code||p.rfid_tag===code||p.sku===code);
+    if(!hit){toast(`No product matches "${code}"`,'bad');
+      if(['products'].includes(Router.view))toast('Tip: open a product and paste this code into Barcode or RFID field');
+      return;
+    }
+    if(Router.view==='pos'){POS.add(hit);toast(`${hit.name} added to sale`,'ok')}
+    else if(Router.view==='inventory'){Views._invPick(hit)}
+    else{toast(`${hit.name} · ${money(hit.price)} · stock ${hit.stock}`,'ok')}
+    if(navigator.vibrate)navigator.vibrate(40);
+  },
+  stream:null,raf:null,
+  async openCamera(){
+    if(!('BarcodeDetector'in window)){
+      modal(`<h3>Camera scanning unavailable</h3><p class="note">This browser doesn't expose the BarcodeDetector API. On Android, use Chrome. On iPhone, use Safari 17+ — or pair a Bluetooth scanner gun, which works everywhere through the scan bar.</p><div class="mact"><button class="btn btn-primary" onclick="closeModal()">OK</button></div>`);
+      return;
+    }
+    modal(`<h3>Camera scan</h3><video id="camview" autoplay playsinline muted></video><p class="note">Point at a barcode or QR code. EAN, UPC, Code-128 and QR are detected automatically.</p><div class="mact"><button class="btn btn-ghost" onclick="Scanner.closeCamera()">Cancel</button></div>`);
+    try{
+      Scanner.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      const v=$('#camview');v.srcObject=Scanner.stream;
+      const det=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','itf']});
+      const loop=async()=>{
+        if(!Scanner.stream)return;
+        try{const codes=await det.detect(v);
+          if(codes.length){const val=codes[0].rawValue;Scanner.closeCamera();Scanner.handle(val);return}
+        }catch(e){}
+        Scanner.raf=requestAnimationFrame(loop);
+      };
+      Scanner.raf=requestAnimationFrame(loop);
+    }catch(e){Scanner.closeCamera();toast('Camera permission denied','bad')}
+  },
+  closeCamera(){
+    if(Scanner.raf)cancelAnimationFrame(Scanner.raf);
+    if(Scanner.stream){Scanner.stream.getTracks().forEach(t=>t.stop());Scanner.stream=null}
+    closeModal();
+  }
+};
+
+/* ═══════════ CSV ⇄ EXCEL BRIDGE ═══════════ */
+const CSV={
+  export(rows,cols,filename){
+    const head=cols.join(',');
+    const body=rows.map(r=>cols.map(c=>{let v=String(r[c]??'');if(/[",\n]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v}).join(',')).join('\n');
+    const blob=new Blob(['\uFEFF'+head+'\n'+body],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+    toast('Exported — opens directly in Excel','ok');
+  },
+  import(file,cb){
+    const rd=new FileReader();
+    rd.onload=()=>{
+      const lines=String(rd.result).replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+      const parse=l=>{const out=[];let cur='',q=false;for(let i=0;i<l.length;i++){const ch=l[i];
+        if(q){if(ch==='"'&&l[i+1]==='"'){cur+='"';i++}else if(ch==='"')q=false;else cur+=ch}
+        else if(ch==='"')q=true;else if(ch===','){out.push(cur);cur=''}else cur+=ch}out.push(cur);return out};
+      const head=parse(lines[0]).map(h=>h.trim());
+      cb(lines.slice(1).map(l=>{const cells=parse(l);const o={};head.forEach((h,i)=>o[h]=cells[i]??'');return o}));
+    };
+    rd.readAsText(file);
+  }
+};
+
+/* ═══════════ CANVAS CHARTS (no external libraries) ═══════════ */
+const Chart={
+  _prep(cv){const dpr=devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*dpr;cv.height=h*dpr;const x=cv.getContext('2d');x.scale(dpr,dpr);x.font='11px JetBrains Mono';return[x,w,h]},
+  line(cv,labels,vals){
+    const[x,w,h]=Chart._prep(cv);const P={l:52,r:12,t:14,b:26};const max=Math.max(...vals,1)*1.15;
+    x.strokeStyle='#E7EDF5';x.fillStyle='#8494AC';x.textAlign='right';
+    for(let i=0;i<=4;i++){const y=P.t+(h-P.t-P.b)*i/4;x.beginPath();x.moveTo(P.l,y);x.lineTo(w-P.r,y);x.stroke();x.fillText(Chart._k(max*(4-i)/4),P.l-6,y+3)}
+    const px=i=>P.l+(w-P.l-P.r)*(vals.length===1?0.5:i/(vals.length-1));
+    const py=v=>P.t+(h-P.t-P.b)*(1-v/max);
+    const g=x.createLinearGradient(0,P.t,0,h-P.b);g.addColorStop(0,'rgba(0,194,209,.25)');g.addColorStop(1,'rgba(0,194,209,0)');
+    x.beginPath();vals.forEach((v,i)=>i?x.lineTo(px(i),py(v)):x.moveTo(px(0),py(v)));
+    x.strokeStyle='#00C2D1';x.lineWidth=2.2;x.stroke();
+    x.lineTo(px(vals.length-1),h-P.b);x.lineTo(px(0),h-P.b);x.closePath();x.fillStyle=g;x.fill();
+    x.fillStyle='#0B1F3A';vals.forEach((v,i)=>{x.beginPath();x.arc(px(i),py(v),2.6,0,7);x.fill()});
+    x.fillStyle='#8494AC';x.textAlign='center';
+    const step=Math.ceil(labels.length/7);
+    labels.forEach((l,i)=>{if(i%step===0)x.fillText(l,px(i),h-8)});
+  },
+  bar(cv,labels,vals,color='#0B1F3A'){
+    const[x,w,h]=Chart._prep(cv);const P={l:52,r:12,t:14,b:44};const max=Math.max(...vals,1)*1.15;
+    x.strokeStyle='#E7EDF5';x.fillStyle='#8494AC';x.textAlign='right';
+    for(let i=0;i<=4;i++){const y=P.t+(h-P.t-P.b)*i/4;x.beginPath();x.moveTo(P.l,y);x.lineTo(w-P.r,y);x.stroke();x.fillText(Chart._k(max*(4-i)/4),P.l-6,y+3)}
+    const bw=(w-P.l-P.r)/vals.length;
+    vals.forEach((v,i)=>{const bh=(h-P.t-P.b)*v/max;
+      x.fillStyle=i===0?'#00C2D1':color;
+      x.beginPath();x.roundRect(P.l+i*bw+bw*0.18,h-P.b-bh,bw*0.64,bh,[4,4,0,0]);x.fill();
+      x.save();x.fillStyle='#8494AC';x.textAlign='center';x.translate(P.l+i*bw+bw/2,h-P.b+10);x.rotate(-.5);x.textAlign='right';
+      x.fillText(String(labels[i]).slice(0,13),0,0);x.restore();
+    });
+  },
+  donut(cv,labels,vals){
+    const[x,w,h]=Chart._prep(cv);const cx=Math.min(w*0.3,120),cy=h/2,R=Math.min(cy-14,74),r=R*0.62;
+    const tot=vals.reduce((a,b)=>a+b,0)||1;
+    const cols=['#00C2D1','#0B1F3A','#E09B0C','#14A36A','#7C5CFF','#D64545','#5D7396','#F27C9C'];
+    let a=-Math.PI/2;
+    vals.forEach((v,i)=>{const a2=a+v/tot*Math.PI*2;
+      x.beginPath();x.arc(cx,cy,R,a,a2);x.arc(cx,cy,r,a2,a,true);x.closePath();x.fillStyle=cols[i%8];x.fill();a=a2});
+    x.textAlign='left';
+    labels.forEach((l,i)=>{const y=18+i*19;if(y>h-6)return;
+      x.fillStyle=cols[i%8];x.fillRect(cx+R+22,y-8,10,10);
+      x.fillStyle='#17233A';x.fillText(`${String(l).slice(0,16)}  ${(vals[i]/tot*100).toFixed(0)}%`,cx+R+38,y+1)});
+  },
+  _k(n){return n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':Math.round(n)}
+};
+
+/* ═══════════ POS ═══════════ */
+const POS={
+  cart:[],customer:null,discount:0,cat:'All',q:'',
+  add(p){
+    if(Number(p.stock)<=0)return toast(p.name+' is out of stock','bad');
+    const line=POS.cart.find(l=>l.product_id===p.id);
+    if(line){if(line.qty+1>Number(p.stock))return toast('Not enough stock','bad');line.qty++}
+    else POS.cart.push({product_id:p.id,sku:p.sku,name:p.name,price:Number(p.price),tax_rate:Number(p.tax_rate??CONFIG.tax_rate),qty:1,stock:Number(p.stock)});
+    POS.renderCart();
+  },
+  qty(i,d){const l=POS.cart[i];l.qty+=d;if(l.qty<=0)POS.cart.splice(i,1);else if(l.qty>l.stock){l.qty=l.stock;toast('Stock limit reached','bad')}POS.renderCart()},
+  totals(){
+    const sub=POS.cart.reduce((a,l)=>a+l.price*l.qty,0);
+    const disc=Math.min(POS.discount,sub);
+    const tax=POS.cart.reduce((a,l)=>a+(l.price*l.qty)*(l.tax_rate/(1+l.tax_rate)),0)*(sub?(sub-disc)/sub:1); // VAT-inclusive
+    return{sub,disc,tax,total:sub-disc};
+  },
+  renderCart(){
+    const t=POS.totals();
+    $('#cartLines').innerHTML=POS.cart.length?POS.cart.map((l,i)=>`
+      <div class="cline">
+        <div><div class="nm">${esc(l.name)}</div>
+          <div class="qtyrow"><button onclick="POS.qty(${i},-1)">−</button><b>${l.qty}</b><button onclick="POS.qty(${i},1)">+</button><span>× ${money(l.price)}</span></div></div>
+        <div><div class="amt">${money(l.price*l.qty)}</div><button class="rm" onclick="POS.cart.splice(${i},1);POS.renderCart()">remove</button></div>
+      </div>`).join(''):'<div class="empty"><b>Cart is empty</b>Scan an item or tap a product</div>';
+    $('#cartCount').textContent=POS.cart.reduce((a,l)=>a+l.qty,0)+' items';
+    $('#tSub').textContent=money(t.sub);$('#tDisc').textContent='− '+money(t.disc);
+    $('#tTax').textContent=money(t.tax);$('#tTotal').textContent=money(t.total);
+    $('#custBtn').textContent=POS.customer?POS.customer.name:'+ Customer';
+  },
+  async pay(method){
+    if(!POS.cart.length)return toast('Cart is empty','bad');
+    const t=POS.totals();
+    if(method==='Cash'){
+      modal(`<h3>Cash payment</h3>
+        <div class="kpi" style="margin:10px 0"><div class="lbl">Amount due</div><div class="val">${money(t.total)}</div></div>
+        <label>Cash received</label><input id="cashIn" type="number" inputmode="decimal" min="0" value="${Math.ceil(t.total)}">
+        <div class="kpi ok" style="margin-top:10px"><div class="lbl">Change</div><div class="val" id="changeOut">${money(Math.ceil(t.total)-t.total)}</div></div>
+        <div class="mact"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="POS.finish('Cash',Number($('#cashIn').value))">Complete sale</button></div>`);
+      $('#cashIn').addEventListener('input',e=>{$('#changeOut').textContent=money(Math.max(0,Number(e.target.value)-t.total))});
+      $('#cashIn').focus();$('#cashIn').select();
+    }else POS.finish(method,t.total);
+  },
+  async finish(method,paid){
+    const t=POS.totals();
+    if(paid<t.total-0.005)return toast('Insufficient payment','bad');
+    closeModal();
+    const receipt='NX-'+new Date().toISOString().slice(2,10).replace(/-/g,'')+'-'+String(Date.now()).slice(-5);
+    const sale={id:uid(),ts:nowISO(),receipt_no:receipt,customer_id:POS.customer?.id||'',user:Auth.user.username,
+      subtotal:t.sub,discount:t.disc,tax:+t.tax.toFixed(2),total:t.total,payment_method:method,
+      amount_paid:paid,change_due:+(paid-t.total).toFixed(2),status:'completed',synced_from:Store.mode};
+    const items=POS.cart.map(l=>({id:uid(),sale_id:sale.id,product_id:l.product_id,sku:l.sku,name:l.name,qty:l.qty,price:l.price,line_total:+(l.price*l.qty).toFixed(2)}));
+    // Persist locally always; queue/send to cloud when in cloud mode
+    await IDB.put('Sales',sale);
+    for(const it of items)await IDB.put('Sale_Items',it);
+    const prods=await Store.list('Products');
+    for(const it of items){
+      const p=prods.find(x=>x.id===it.product_id);
+      if(p){p.stock=Number(p.stock)-it.qty;p.updated_at=nowISO();await IDB.put('Products',p);
+        await IDB.put('Inventory_Log',{id:uid(),ts:sale.ts,product_id:p.id,type:'sale',qty:-it.qty,ref:receipt,user:Auth.user.username,note:''});
+        if(Number(p.stock)<=Number(p.reorder_level||0))toast(`Low stock: ${p.name} (${p.stock} left)`,'bad');
+      }
+    }
+    if(POS.customer){
+      POS.customer.loyalty_points=Number(POS.customer.loyalty_points||0)+Math.floor(t.total/CONFIG.loyalty_per);
+      POS.customer.total_spent=Number(POS.customer.total_spent||0)+t.total;
+      await IDB.put('Customers',POS.customer);
+    }
+    delete Store.cache.Products;delete Store.cache.Sales;
+    if(Store.mode==='cloud')await Store.queueOrSend('checkout',{sale,items});
+    POS.showReceipt(sale,items);
+    POS.cart=[];POS.customer=null;POS.discount=0;
+    Views.pos();
+  },
+  showReceipt(sale,items){
+    modal(`<h3 style="text-align:center">${esc(CONFIG.store_name)}</h3>
+      <div class="mono" style="text-align:center;color:var(--ink-3)">${esc(sale.receipt_no)} · ${dstr(sale.ts)}</div>
+      <hr style="border:none;border-top:1px dashed var(--line);margin:12px 0">
+      ${items.map(i=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:2px 0"><span>${i.qty} × ${esc(i.name)}</span><span class="mono">${money(i.line_total)}</span></div>`).join('')}
+      <hr style="border:none;border-top:1px dashed var(--line);margin:12px 0">
+      <div style="display:flex;justify-content:space-between"><b>TOTAL</b><b class="mono">${money(sale.total)}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-3)"><span>${esc(sale.payment_method)} · paid</span><span class="mono">${money(sale.amount_paid)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-3)"><span>Change</span><span class="mono">${money(sale.change_due)}</span></div>
+      <div style="text-align:center;font-size:10px;color:var(--ink-3);margin-top:12px;letter-spacing:.3px">Salamat po! · Developed by NEXARCH · Powered by CYRABELL</div>
+      <div class="mact"><button class="btn btn-ghost" onclick="window.print()">Print</button><button class="btn btn-primary" onclick="closeModal()">New sale</button></div>`);
+  },
+  async pickCustomer(){
+    const custs=await Store.list('Customers');
+    modal(`<h3>Attach customer</h3>
+      <input id="custQ" placeholder="Search name or phone" oninput="POS._filterCust()">
+      <div id="custList" style="max-height:260px;overflow-y:auto;margin-top:10px"></div>
+      <div class="mact"><button class="btn btn-ghost" onclick="POS.customer=null;POS.renderCart();closeModal()">No customer</button>
+      <button class="btn btn-primary" onclick="closeModal();Router.go('customers')">+ New customer</button></div>`);
+    POS._custs=custs;POS._filterCust();
+  },
+  _filterCust(){
+    const q=($('#custQ').value||'').toLowerCase();
+    $('#custList').innerHTML=POS._custs.filter(c=>!q||String(c.name).toLowerCase().includes(q)||String(c.phone).includes(q)).slice(0,30)
+      .map(c=>`<button class="btn btn-ghost" style="width:100%;justify-content:space-between;margin-bottom:6px" onclick='POS.customer=${JSON.stringify(c).replace(/'/g,"&#39;")};POS.renderCart();closeModal()'>
+        <span>${esc(c.name)}</span><span class="mono" style="font-size:11px">${c.loyalty_points||0} pts</span></button>`).join('')||'<div class="empty">No matches</div>';
+  }
+};
+
+/* ═══════════ VIEWS ═══════════ */
+const Views={
+
+  /* ── DASHBOARD ── */
+  async dashboard(){
+    const[sales,prods]=await Promise.all([Store.list('Sales'),Store.list('Products')]);
+    const today=new Date();today.setHours(0,0,0,0);
+    const tSales=sales.filter(s=>new Date(s.ts)>=today&&s.status!=='void');
+    const active=prods.filter(p=>truthy(p.active));
+    const low=active.filter(p=>Number(p.stock)<=Number(p.reorder_level||0));
+    const invVal=active.reduce((a,p)=>a+Number(p.cost||0)*Number(p.stock||0),0);
+    // 14-day trend
+    const days=[...Array(14)].map((_,i)=>{const d=new Date(today);d.setDate(d.getDate()-13+i);return d});
+    const trend=days.map(d=>{const k=d.toISOString().slice(0,10);
+      return sales.filter(s=>String(s.ts).slice(0,10)===k&&s.status!=='void').reduce((a,s)=>a+Number(s.total||0),0)});
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Dashboard</h2><div class="sub">${esc(CONFIG.store_name)} · live operational picture</div></div>
+        <div class="actions"><button class="btn btn-ghost btn-sm" onclick="Views.dashboard()">↻ Refresh</button></div></div>
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Sales today</div><div class="val">${money(tSales.reduce((a,s)=>a+Number(s.total||0),0))}</div><div class="sub">${tSales.length} transactions</div></div>
+        <div class="kpi ok"><div class="lbl">Avg ticket</div><div class="val">${money(tSales.length?tSales.reduce((a,s)=>a+Number(s.total||0),0)/tSales.length:0)}</div><div class="sub">today</div></div>
+        <div class="kpi ${low.length?'bad':'ok'}"><div class="lbl">Low stock</div><div class="val">${low.length}</div><div class="sub">of ${active.length} SKUs</div></div>
+        <div class="kpi warn"><div class="lbl">Inventory value</div><div class="val">${money(invVal)}</div><div class="sub">at cost</div></div>
+      </div>
+      <div class="card"><h3>Sales — last 14 days</h3><canvas class="chart" id="chTrend"></canvas></div>
+      ${low.length?`<div class="card"><h3>⚠ Reorder now</h3><div class="tblwrap"><table><tr><th>Product</th><th class="num">Stock</th><th class="num">Reorder at</th></tr>
+        ${low.slice(0,8).map(p=>`<tr><td>${esc(p.name)}</td><td class="num"><span class="tag bad">${p.stock}</span></td><td class="num">${p.reorder_level}</td></tr>`).join('')}</table></div></div>`:''}`;
+    Chart.line($('#chTrend'),days.map(d=>d.toLocaleDateString('en-PH',{month:'short',day:'numeric'})),trend);
+  },
+
+  /* ── POS ── */
+  async pos(){
+    const prods=(await Store.list('Products')).filter(p=>truthy(p.active));
+    const cats=['All',...new Set(prods.map(p=>p.category).filter(Boolean))];
+    $('#main').innerHTML=`
+      <div class="pos">
+        <div class="pos-catalog">
+          <div class="searchrow"><input id="posQ" placeholder="Search products…" value="${esc(POS.q)}" oninput="POS.q=this.value;Views._posGrid()"></div>
+          <div class="cats">${cats.map(c=>`<button class="${POS.cat===c?'on':''}" onclick="POS.cat='${esc(c)}';Views.pos()">${esc(c)}</button>`).join('')}</div>
+          <div class="prodgrid" id="posGrid"></div>
+        </div>
+        <div class="cart">
+          <h3>Current sale <span class="tag info" id="cartCount">0 items</span></h3>
+          <div style="padding:10px 16px 0"><button class="btn btn-ghost btn-sm" id="custBtn" onclick="POS.pickCustomer()">+ Customer</button>
+            <button class="btn btn-ghost btn-sm" onclick="Views._discount()">% Discount</button></div>
+          <div class="lines" id="cartLines"></div>
+          <div class="totals">
+            <div class="row"><span>Subtotal</span><span class="mono" id="tSub">₱0.00</span></div>
+            <div class="row"><span>Discount</span><span class="mono" id="tDisc">− ₱0.00</span></div>
+            <div class="row"><span>VAT (incl.)</span><span class="mono" id="tTax">₱0.00</span></div>
+            <div class="row"><span class="grand">Total</span><span class="grand mono" id="tTotal">₱0.00</span></div>
+          </div>
+          <div class="paybtns">${CONFIG.payment_methods.map(m=>`<button class="btn btn-primary" onclick="POS.pay('${m}')">${m}</button>`).join('')}</div>
+        </div>
+      </div>`;
+    Views._prods=prods;Views._posGrid();POS.renderCart();
+  },
+  _posGrid(){
+    const q=POS.q.toLowerCase();
+    const list=Views._prods.filter(p=>(POS.cat==='All'||p.category===POS.cat)&&(!q||String(p.name).toLowerCase().includes(q)||String(p.sku).toLowerCase().includes(q)||String(p.barcode).includes(q)));
+    $('#posGrid').innerHTML=list.map(p=>`
+      <button class="pcard ${Number(p.stock)<=0?'out':''}" onclick='POS.add(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
+        <div class="nm">${esc(p.name)}</div><div class="pr">${money(p.price)}</div>
+        <div class="st">${p.stock} ${esc(p.unit||'pcs')}${Number(p.stock)<=Number(p.reorder_level||0)?' ⚠':''}</div></button>`).join('')
+      ||'<div class="empty"><b>No products</b>Add products or import from Excel/CSV</div>';
+  },
+  _discount(){
+    modal(`<h3>Discount</h3><label>Amount off (₱)</label><input id="dIn" type="number" min="0" value="${POS.discount}">
+      <div class="mact"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="POS.discount=Number($('#dIn').value||0);POS.renderCart();closeModal()">Apply</button></div>`);
+  },
+
+  /* ── PRODUCTS ── */
+  async products(){
+    const prods=await Store.list('Products');
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Products</h2><div class="sub">${prods.length} SKUs · barcode + RFID mapped</div></div>
+        <div class="actions">
+          <input type="file" id="csvFile" accept=".csv" hidden onchange="Views._prodImport(this.files[0])">
+          <button class="btn btn-ghost btn-sm" onclick="$('#csvFile').click()">⬆ Import CSV/Excel</button>
+          <button class="btn btn-ghost btn-sm" onclick="Views._prodExport()">⬇ Export</button>
+          <button class="btn btn-primary btn-sm" onclick="Views.prodForm()">+ Product</button></div></div>
+      <div class="card"><div class="searchrow"><input id="prodQ" placeholder="Search name, SKU, barcode…" oninput="Views._prodTable()"></div>
+      <div class="tblwrap" id="prodTbl"></div></div>`;
+    Views._prods=prods;Views._prodTable();
+  },
+  _prodTable(){
+    const q=($('#prodQ')?.value||'').toLowerCase();
+    const list=Views._prods.filter(p=>!q||String(p.name).toLowerCase().includes(q)||String(p.sku).toLowerCase().includes(q)||String(p.barcode).includes(q));
+    $('#prodTbl').innerHTML=`<table><tr><th>Product</th><th>Barcode / RFID</th><th class="num">Cost</th><th class="num">Price</th><th class="num">Stock</th><th></th></tr>
+      ${list.map(p=>`<tr><td><b>${esc(p.name)}</b><br><small style="color:var(--ink-3)">${esc(p.sku)} · ${esc(p.category||'—')}</small></td>
+        <td class="mono" style="font-size:11px">${esc(p.barcode||'—')}${p.rfid_tag?'<br>RFID '+esc(p.rfid_tag):''}</td>
+        <td class="num">${money(p.cost)}</td><td class="num">${money(p.price)}</td>
+        <td class="num"><span class="tag ${Number(p.stock)<=0?'bad':Number(p.stock)<=Number(p.reorder_level||0)?'warn':'ok'}">${p.stock}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="Views.prodForm('${p.id}')">Edit</button></td></tr>`).join('')}</table>`
+      +(list.length?'':'<div class="empty"><b>No products yet</b>Add one or import a CSV exported from Excel</div>');
+  },
+  async prodForm(id){
+    const p=id?(await Store.list('Products')).find(x=>x.id===id):{active:true,tax_rate:CONFIG.tax_rate,unit:'pcs',stock:0,reorder_level:10};
+    modal(`<h3>${id?'Edit':'New'} product</h3><div class="formgrid">
+      <div class="full"><label>Name</label><input id="pfName" value="${esc(p.name||'')}"></div>
+      <div><label>SKU</label><input id="pfSku" value="${esc(p.sku||'')}"></div>
+      <div><label>Category</label><select id="pfCat">${CONFIG.categories.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div><label>Barcode</label><input id="pfBc" class="mono" value="${esc(p.barcode||'')}" placeholder="scan into this field"></div>
+      <div><label>RFID tag (EPC)</label><input id="pfRf" class="mono" value="${esc(p.rfid_tag||'')}" placeholder="scan tag with reader"></div>
+      <div><label>Cost</label><input id="pfCost" type="number" step="0.01" value="${p.cost||0}"></div>
+      <div><label>Price</label><input id="pfPrice" type="number" step="0.01" value="${p.price||0}"></div>
+      <div><label>Stock</label><input id="pfStock" type="number" value="${p.stock||0}" ${id?'disabled title="Use Inventory to adjust stock"':''}></div>
+      <div><label>Reorder level</label><input id="pfRl" type="number" value="${p.reorder_level||0}"></div>
+      <div><label>Unit</label><input id="pfUnit" value="${esc(p.unit||'pcs')}"></div>
+      <div><label>Active</label><select id="pfAct"><option value="true" ${truthy(p.active)?'selected':''}>Yes</option><option value="false" ${!truthy(p.active)?'selected':''}>No</option></select></div>
+      </div>
+      <div class="mact">${id?`<button class="btn btn-danger btn-sm" onclick="if(confirm('Delete this product?')){Store.remove('Products','${id}').then(()=>{closeModal();Views.products()})}">Delete</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._prodSave('${id||''}')">Save product</button></div>`);
+  },
+  async _prodSave(id){
+    const rec={id:id||undefined,name:$('#pfName').value.trim(),sku:$('#pfSku').value.trim()||('SKU-'+uid().slice(0,6).toUpperCase()),
+      category:$('#pfCat').value,barcode:$('#pfBc').value.trim(),rfid_tag:$('#pfRf').value.trim(),
+      cost:Number($('#pfCost').value||0),price:Number($('#pfPrice').value||0),tax_rate:CONFIG.tax_rate,
+      stock:Number($('#pfStock').value||0),reorder_level:Number($('#pfRl').value||0),
+      unit:$('#pfUnit').value.trim()||'pcs',active:$('#pfAct').value==='true',supplier_id:'',image_url:''};
+    if(!rec.name)return toast('Name is required','bad');
+    if(id){const old=(await Store.list('Products')).find(x=>x.id===id);rec.stock=old.stock}
+    await Store.save('Products',rec,!id);
+    closeModal();toast('Product saved','ok');Views.products();
+  },
+  _prodExport(){CSV.export(Views._prods,['sku','barcode','rfid_tag','name','category','cost','price','stock','reorder_level','unit','active'],'nexmart-products.csv')},
+  _prodImport(file){
+    if(!file)return;
+    CSV.import(file,async rows=>{
+      let n=0;
+      const existing=await Store.list('Products');
+      for(const r of rows){
+        if(!r.name)continue;
+        const hit=existing.find(p=>p.sku===r.sku||p.barcode&&p.barcode===r.barcode);
+        const rec=Object.assign(hit||{id:uid(),tax_rate:CONFIG.tax_rate,supplier_id:'',image_url:''},{
+          sku:r.sku||hit?.sku||('SKU-'+uid().slice(0,6).toUpperCase()),barcode:r.barcode||'',rfid_tag:r.rfid_tag||'',
+          name:r.name,category:r.category||'',cost:Number(r.cost||0),price:Number(r.price||0),
+          stock:Number(r.stock||0),reorder_level:Number(r.reorder_level||0),unit:r.unit||'pcs',active:r.active===''?true:truthy(r.active)});
+        await Store.save('Products',rec,!hit);n++;
+      }
+      toast(`Imported ${n} products from Excel/CSV`,'ok');Views.products();
+    });
+  },
+
+  /* ── INVENTORY ── */
+  async inventory(){
+    const[prods,log]=await Promise.all([Store.list('Products'),IDB.all('Inventory_Log')]);
+    const recent=log.sort((a,b)=>String(b.ts).localeCompare(a.ts)).slice(0,40);
+    const pn={};prods.forEach(p=>pn[p.id]=p.name);
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Inventory</h2><div class="sub">Scan an item from any screen to jump straight to adjustment</div></div>
+        <div class="actions"><button class="btn btn-primary btn-sm" onclick="Views._invPick()">+ Stock movement</button></div></div>
+      <div class="card"><h3>Recent movements</h3><div class="tblwrap"><table>
+        <tr><th>When</th><th>Product</th><th>Type</th><th class="num">Qty</th><th>Ref</th><th>By</th></tr>
+        ${recent.map(l=>`<tr><td class="mono" style="font-size:11px">${dstr(l.ts)}</td><td>${esc(pn[l.product_id]||l.product_id)}</td>
+          <td><span class="tag ${l.type==='sale'?'info':Number(l.qty)>0?'ok':'warn'}">${esc(l.type)}</span></td>
+          <td class="num" style="color:${Number(l.qty)<0?'var(--bad)':'var(--ok)'}">${Number(l.qty)>0?'+':''}${l.qty}</td>
+          <td class="mono" style="font-size:11px">${esc(l.ref||'—')}</td><td>${esc(l.user||'')}</td></tr>`).join('')}
+      </table></div>${recent.length?'':'<div class="empty"><b>No movements yet</b>Sales and adjustments appear here</div>'}</div>`;
+  },
+  async _invPick(prod){
+    const prods=await Store.list('Products');
+    modal(`<h3>Stock movement</h3>
+      <label>Product</label><select id="ivProd">${prods.map(p=>`<option value="${p.id}" ${prod&&p.id===prod.id?'selected':''}>${esc(p.name)} (now ${p.stock})</option>`).join('')}</select>
+      <label>Type</label><select id="ivType"><option value="receive">Receive stock (+)</option><option value="adjustment">Adjustment (±)</option><option value="damage">Damage / loss (−)</option><option value="return">Customer return (+)</option><option value="rfid_count">RFID cycle count (set)</option></select>
+      <label>Quantity</label><input id="ivQty" type="number" value="1">
+      <label>Date</label><input id="ivDate" type="date" value="${localDate()}" max="${localDate()}">
+      <label>Reference / note</label><input id="ivNote" placeholder="PO number, reason…">
+      <div class="mact"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._invSave()">Post movement</button></div>`);
+  },
+  async _invSave(){
+    const prods=await Store.list('Products');
+    const p=prods.find(x=>x.id===$('#ivProd').value);
+    const type=$('#ivType').value;let qty=Number($('#ivQty').value||0);
+    if(type==='damage')qty=-Math.abs(qty);
+    if(type==='rfid_count')qty=qty-Number(p.stock);   // set absolute count from RFID sweep
+    const dv=$('#ivDate').value;
+    const mts=(!dv||dv===localDate())?nowISO():new Date(dv+'T12:00:00').toISOString();
+    p.stock=Number(p.stock)+qty;p.updated_at=nowISO();
+    await Store.save('Products',p,false);
+    await IDB.put('Inventory_Log',{id:uid(),ts:mts,product_id:p.id,type,qty,ref:$('#ivNote').value,user:Auth.user.username,note:''});
+    if(Store.mode==='cloud')await Store.queueOrSend('stock_move',{product_id:p.id,type,qty,ref:$('#ivNote').value});
+    closeModal();toast(`${p.name}: stock now ${p.stock}`,'ok');Views.inventory();
+  },
+
+  /* ── CUSTOMERS ── */
+  async customers(){
+    const custs=await Store.list('Customers');
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Customers</h2><div class="sub">${custs.length} profiles · loyalty & notification channels</div></div>
+        <div class="actions"><button class="btn btn-ghost btn-sm" onclick="CSV.export(Views._custs,['name','phone','email','whatsapp','viber_id','messenger_psid','birthday','loyalty_points','total_spent'],'nexmart-customers.csv')">⬇ Export</button>
+        <button class="btn btn-primary btn-sm" onclick="Views.custForm()">+ Customer</button></div></div>
+      <div class="card"><div class="tblwrap"><table><tr><th>Customer</th><th>Channels</th><th class="num">Points</th><th class="num">Lifetime</th><th></th></tr>
+        ${custs.map(c=>`<tr><td><b>${esc(c.name)}</b><br><small class="mono" style="color:var(--ink-3)">${esc(c.phone||'')}</small></td>
+          <td>${['email','whatsapp','viber_id','messenger_psid'].filter(k=>c[k]).map(k=>`<span class="tag info">${k.split('_')[0]}</span>`).join(' ')||'—'}</td>
+          <td class="num">${c.loyalty_points||0}</td><td class="num">${money(c.total_spent)}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="Views.custForm('${c.id}')">Edit</button></td></tr>`).join('')}</table></div>
+        ${custs.length?'':'<div class="empty"><b>No customers yet</b>Profiles power loyalty points and purchase notifications</div>'}</div>`;
+    Views._custs=custs;
+  },
+  async custForm(id){
+    const c=id?(await Store.list('Customers')).find(x=>x.id===id):{};
+    modal(`<h3>${id?'Edit':'New'} customer</h3><div class="formgrid">
+      <div class="full"><label>Name</label><input id="cfName" value="${esc(c.name||'')}"></div>
+      <div><label>Phone (SMS)</label><input id="cfPhone" value="${esc(c.phone||'')}" placeholder="+639…"></div>
+      <div><label>Email</label><input id="cfEmail" value="${esc(c.email||'')}"></div>
+      <div><label>WhatsApp</label><input id="cfWa" value="${esc(c.whatsapp||'')}" placeholder="+639…"></div>
+      <div><label>Viber ID</label><input id="cfVb" value="${esc(c.viber_id||'')}"></div>
+      <div><label>Birthday</label><input id="cfBday" type="date" value="${esc(c.birthday||'')}" max="${localDate()}"></div>
+      <div class="full"><label>Messenger PSID</label><input id="cfMs" value="${esc(c.messenger_psid||'')}" placeholder="from your FB Page webhook"></div></div>
+      <div class="mact">${id?`<button class="btn btn-danger btn-sm" onclick="if(confirm('Delete customer?')){Store.remove('Customers','${id}').then(()=>{closeModal();Views.customers()})}">Delete</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._custSave('${id||''}')">Save</button></div>`);
+  },
+  async _custSave(id){
+    const rec={id:id||undefined,name:$('#cfName').value.trim(),phone:$('#cfPhone').value.trim(),email:$('#cfEmail').value.trim(),
+      whatsapp:$('#cfWa').value.trim(),viber_id:$('#cfVb').value.trim(),messenger_psid:$('#cfMs').value.trim(),birthday:$('#cfBday').value,
+      loyalty_points:id?undefined:0,total_spent:id?undefined:0,created_at:id?undefined:nowISO()};
+    if(!rec.name)return toast('Name is required','bad');
+    if(id){const old=(await Store.list('Customers')).find(x=>x.id===id);rec.loyalty_points=old.loyalty_points;rec.total_spent=old.total_spent;rec.created_at=old.created_at}
+    await Store.save('Customers',rec,!id);
+    closeModal();toast('Customer saved','ok');Views.customers();
+  },
+
+  /* ── SUPPLIERS ── */
+  async suppliers(){
+    const sups=await Store.list('Suppliers');
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Suppliers</h2></div><div class="actions"><button class="btn btn-primary btn-sm" onclick="Views.supForm()">+ Supplier</button></div></div>
+      <div class="card"><div class="tblwrap"><table><tr><th>Supplier</th><th>Contact</th><th>Terms</th><th></th></tr>
+      ${sups.map(s=>`<tr><td><b>${esc(s.name)}</b></td><td>${esc(s.contact||'')}<br><small class="mono" style="color:var(--ink-3)">${esc(s.phone||'')} ${esc(s.email||'')}</small></td>
+        <td>${esc(s.terms||'—')}</td><td><button class="btn btn-ghost btn-sm" onclick="Views.supForm('${s.id}')">Edit</button></td></tr>`).join('')}</table></div>
+      ${sups.length?'':'<div class="empty"><b>No suppliers</b>Suppliers feed purchase orders</div>'}</div>`;
+  },
+  async supForm(id){
+    const s=id?(await Store.list('Suppliers')).find(x=>x.id===id):{active:true};
+    modal(`<h3>${id?'Edit':'New'} supplier</h3>
+      <label>Name</label><input id="sfName" value="${esc(s.name||'')}">
+      <div class="formgrid"><div><label>Contact person</label><input id="sfC" value="${esc(s.contact||'')}"></div>
+      <div><label>Phone</label><input id="sfP" value="${esc(s.phone||'')}"></div>
+      <div><label>Email</label><input id="sfE" value="${esc(s.email||'')}"></div>
+      <div><label>Terms</label><input id="sfT" value="${esc(s.terms||'')}" placeholder="e.g. Net 30"></div></div>
+      <label>Address</label><input id="sfA" value="${esc(s.address||'')}">
+      <div class="mact">${id?`<button class="btn btn-danger btn-sm" onclick="if(confirm('Delete supplier?')){Store.remove('Suppliers','${id}').then(()=>{closeModal();Views.suppliers()})}">Delete</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._supSave('${id||''}')">Save</button></div>`);
+  },
+  async _supSave(id){
+    const rec={id:id||undefined,name:$('#sfName').value.trim(),contact:$('#sfC').value,phone:$('#sfP').value,email:$('#sfE').value,terms:$('#sfT').value,address:$('#sfA').value,active:true};
+    if(!rec.name)return toast('Name is required','bad');
+    await Store.save('Suppliers',rec,!id);closeModal();toast('Supplier saved','ok');Views.suppliers();
+  },
+
+  /* ── PURCHASE ORDERS ── */
+  async po(){
+    const[pos,sups]=await Promise.all([Store.list('Purchase_Orders'),Store.list('Suppliers')]);
+    const sn={};sups.forEach(s=>sn[s.id]=s.name);
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Purchase Orders</h2></div><div class="actions"><button class="btn btn-primary btn-sm" onclick="Views.poForm()">+ Purchase order</button></div></div>
+      <div class="card"><div class="tblwrap"><table><tr><th>PO</th><th>Supplier</th><th>Status</th><th>Expected</th><th class="num">Total</th><th></th></tr>
+      ${pos.sort((a,b)=>String(b.created_at).localeCompare(a.created_at)).map(p=>`<tr><td class="mono">${esc(p.po_no)}</td><td>${esc(sn[p.supplier_id]||'—')}</td>
+        <td><span class="tag ${p.status==='received'?'ok':p.status==='sent'?'info':'warn'}">${esc(p.status)}</span></td>
+        <td class="mono" style="font-size:12px;${p.status!=='received'&&p.expected_date&&p.expected_date<localDate()?'color:var(--bad)':''}">${esc(p.expected_date||'—')}</td>
+        <td class="num">${money(p.total)}</td>
+        <td>${p.status!=='received'?`<button class="btn btn-ghost btn-sm" onclick="Views._poReceive('${p.id}')">Receive</button>`:''}</td></tr>`).join('')}</table></div>
+      ${pos.length?'':'<div class="empty"><b>No purchase orders</b>Restock from the Reorder list on the dashboard</div>'}</div>`;
+  },
+  async poForm(){
+    const[sups,prods]=await Promise.all([Store.list('Suppliers'),Store.list('Products')]);
+    if(!sups.length)return toast('Add a supplier first','bad');
+    Views._poLines=[];
+    modal(`<h3>New purchase order</h3>
+      <label>Supplier</label><select id="poSup">${sups.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select>
+      <label>Expected delivery</label><input id="poEta" type="date" value="${localDate(Date.now()+7*864e5)}" min="${localDate()}">
+      <label>Add item</label><div style="display:flex;gap:8px"><select id="poProd" style="flex:1">${prods.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>
+      <input id="poQty" type="number" value="10" style="width:80px"><button class="btn btn-ghost btn-sm" onclick="Views._poAdd()">Add</button></div>
+      <div id="poLines" style="margin-top:10px"></div>
+      <div class="mact"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._poSave()">Create PO</button></div>`);
+    Views._poProds=prods;
+  },
+  _poAdd(){
+    const p=Views._poProds.find(x=>x.id===$('#poProd').value);
+    Views._poLines.push({product_id:p.id,name:p.name,qty_ordered:Number($('#poQty').value||1),unit_cost:Number(p.cost||0)});
+    $('#poLines').innerHTML=Views._poLines.map((l,i)=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid var(--line)">
+      <span>${l.qty_ordered} × ${esc(l.name)}</span><span class="mono">${money(l.qty_ordered*l.unit_cost)} <button class="rm" style="color:var(--bad)" onclick="Views._poLines.splice(${i},1);Views._poAdd.call(null)">✕</button></span></div>`).join('');
+  },
+  async _poSave(){
+    if(!Views._poLines.length)return toast('Add at least one item','bad');
+    const po={id:uid(),po_no:'PO-'+Date.now().toString(36).toUpperCase(),supplier_id:$('#poSup').value,status:'sent',
+      expected_date:$('#poEta').value||'',total:Views._poLines.reduce((a,l)=>a+l.qty_ordered*l.unit_cost,0),created_by:Auth.user.username,created_at:nowISO(),received_at:''};
+    await Store.save('Purchase_Orders',po,true);
+    for(const l of Views._poLines)await Store.save('PO_Items',{id:uid(),po_id:po.id,product_id:l.product_id,qty_ordered:l.qty_ordered,qty_received:0,unit_cost:l.unit_cost},true);
+    closeModal();toast('PO created — '+po.po_no,'ok');Views.po();
+  },
+  async _poReceive(id){
+    const[po,items,prods]=await Promise.all([Store.list('Purchase_Orders').then(r=>r.find(x=>x.id===id)),Store.list('PO_Items'),Store.list('Products')]);
+    const mine=items.filter(i=>i.po_id===id);
+    for(const it of mine){
+      const p=prods.find(x=>x.id===it.product_id);
+      if(p){p.stock=Number(p.stock)+Number(it.qty_ordered);p.updated_at=nowISO();await Store.save('Products',p,false);
+        await IDB.put('Inventory_Log',{id:uid(),ts:nowISO(),product_id:p.id,type:'receive',qty:Number(it.qty_ordered),ref:po.po_no,user:Auth.user.username,note:''});
+        if(Store.mode==='cloud')await Store.queueOrSend('stock_move',{product_id:p.id,type:'receive',qty:Number(it.qty_ordered),ref:po.po_no});}
+      it.qty_received=it.qty_ordered;await Store.save('PO_Items',it,false);
+    }
+    po.status='received';po.received_at=nowISO();await Store.save('Purchase_Orders',po,false);
+    toast('Stock received into inventory','ok');Views.po();
+  },
+
+  /* ── BI REPORTS ── */
+  _rr:{from:'',to:''},
+  _rrSet(days){
+    if(days===null)Views._rr={from:'',to:''};
+    else{const f=new Date(Date.now()-(days-1)*864e5);Views._rr={from:localDate(f),to:localDate()}}
+    Views.reports();
+  },
+  async reports(){
+    const[sales,items,prods]=await Promise.all([Store.list('Sales'),IDB.all('Sale_Items'),Store.list('Products')]);
+    const rr=Views._rr;
+    const inR=ts=>{const d=localDate(ts);return(!rr.from||d>=rr.from)&&(!rr.to||d<=rr.to)};
+    const done=sales.filter(s=>s.status!=='void'&&inR(s.ts));
+    const saleIds={};done.forEach(s=>saleIds[s.id]=1);
+    const sold=items.filter(i=>saleIds[i.sale_id]);
+    // top products
+    const agg={};sold.forEach(i=>{agg[i.product_id]=agg[i.product_id]||{name:i.name,qty:0,rev:0};agg[i.product_id].qty+=Number(i.qty);agg[i.product_id].rev+=Number(i.line_total)});
+    const top=Object.values(agg).sort((a,b)=>b.rev-a.rev).slice(0,8);
+    // category mix
+    const pc={};prods.forEach(p=>pc[p.id]=p.category||'Other');
+    const cm={};sold.forEach(i=>{const c=pc[i.product_id]||'Other';cm[c]=(cm[c]||0)+Number(i.line_total)});
+    const cats=Object.entries(cm).sort((a,b)=>b[1]-a[1]);
+    // margin
+    const cost={};prods.forEach(p=>cost[p.id]=Number(p.cost||0));
+    const revenue=sold.reduce((a,i)=>a+Number(i.line_total),0);
+    const cogs=sold.reduce((a,i)=>a+cost[i.product_id]*Number(i.qty),0);
+    // payment mix
+    const pm={};done.forEach(s=>{pm[s.payment_method||'Cash']=(pm[s.payment_method||'Cash']||0)+Number(s.total)});
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Business Intelligence</h2><div class="sub">${rr.from||rr.to?`${rr.from||'…'} → ${rr.to||'…'}`:'All-time'} · ${done.length} transactions analyzed</div></div>
+        <div class="actions"><button class="btn btn-ghost btn-sm" onclick="CSV.export(Views._sales,['ts','receipt_no','user','subtotal','discount','tax','total','payment_method','status'],'nexmart-sales.csv')">⬇ Sales to Excel</button></div></div>
+      <div class="card" style="padding:10px 14px;margin-bottom:14px"><div class="rangebar">
+        <input type="date" id="rrFrom" value="${rr.from}" max="${localDate()}" onchange="Views._rr.from=this.value;Views.reports()">
+        <span class="sep">→</span>
+        <input type="date" id="rrTo" value="${rr.to}" max="${localDate()}" onchange="Views._rr.to=this.value;Views.reports()">
+        <button class="btn btn-ghost btn-sm" onclick="Views._rrSet(1)">Today</button>
+        <button class="btn btn-ghost btn-sm" onclick="Views._rrSet(7)">7 days</button>
+        <button class="btn btn-ghost btn-sm" onclick="Views._rrSet(30)">30 days</button>
+        <button class="btn btn-ghost btn-sm" onclick="Views._rrSet(null)">All-time</button>
+      </div></div>
+      <div class="kpis">
+        <div class="kpi"><div class="lbl">Revenue</div><div class="val">${money(revenue)}</div></div>
+        <div class="kpi warn"><div class="lbl">COGS</div><div class="val">${money(cogs)}</div></div>
+        <div class="kpi ok"><div class="lbl">Gross margin</div><div class="val">${money(revenue-cogs)}</div><div class="sub">${revenue?((revenue-cogs)/revenue*100).toFixed(1):0}%</div></div>
+        <div class="kpi"><div class="lbl">Units sold</div><div class="val">${sold.reduce((a,i)=>a+Number(i.qty),0)}</div></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><h3>Top products by revenue</h3><canvas class="chart" id="chTop"></canvas></div>
+        <div class="card"><h3>Category mix</h3><canvas class="chart" id="chCat"></canvas></div>
+      </div>
+      <div class="card"><h3>Payment methods</h3><canvas class="chart" id="chPay" style="height:170px"></canvas></div>`;
+    Views._sales=done;
+    if(top.length)Chart.bar($('#chTop'),top.map(t=>t.name),top.map(t=>t.rev));
+    if(cats.length)Chart.donut($('#chCat'),cats.map(c=>c[0]),cats.map(c=>c[1]));
+    const pms=Object.entries(pm);if(pms.length)Chart.donut($('#chPay'),pms.map(p=>p[0]),pms.map(p=>p[1]));
+  },
+
+  /* ── NOTIFICATIONS ── */
+  async notify(){
+    const log=Store.mode==='cloud'?(await Store.list('Notify_Log',true).catch(()=>[])):await IDB.all('Notify_Log');
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Notifications</h2><div class="sub">Email · SMS · WhatsApp · Viber · Messenger</div></div></div>
+      <div class="grid2">
+        <div class="card"><h3>Send a message</h3>
+          <label>Channel</label><select id="ntCh"><option value="email">Email</option><option value="sms">SMS</option><option value="whatsapp">WhatsApp</option><option value="viber">Viber</option><option value="messenger">Messenger</option></select>
+          <label>Recipient</label><input id="ntTo" placeholder="email / +63 phone / PSID / Viber ID">
+          <label>Message</label><textarea id="ntMsg" rows="4" placeholder="e.g. Your order is ready for pickup!"></textarea>
+          <button class="btn btn-primary" style="margin-top:14px" onclick="Views._notifySend()">Send now</button>
+          <p class="note">${Store.mode==='cloud'?'Delivered by the Apps Script backend using the provider keys in Settings → Cloud config.':'⚠ Sending requires <b>Cloud mode</b>. Local mode logs the intent only.'}</p>
+        </div>
+        <div class="card"><h3>Automatic alerts</h3>
+          <p class="note" style="margin-top:0">The cloud backend sends these without any action from you:</p>
+          <table><tr><th>Event</th><th>Trigger</th></tr>
+          <tr><td><b>Low stock</b></td><td>After any sale that drops an item to its reorder level, plus a sweep every 4 hours</td></tr>
+          <tr><td><b>Daily summary</b></td><td>Every evening at your configured hour — transactions, gross sales, average ticket</td></tr>
+          <tr><td><b>Sale completed</b></td><td>Pushed to any connector subscribed to <span class="mono">sale.completed</span></td></tr></table>
+          <p class="note">Choose alert channels in Settings (e.g. <span class="mono">email,sms,viber</span>).</p>
+        </div>
+      </div>
+      <div class="card"><h3>Delivery log</h3><div class="tblwrap"><table><tr><th>When</th><th>Channel</th><th>To</th><th>Event</th><th>Status</th></tr>
+      ${log.slice(-30).reverse().map(l=>`<tr><td class="mono" style="font-size:11px">${dstr(l.ts)}</td><td><span class="tag info">${esc(l.channel)}</span></td>
+        <td class="mono" style="font-size:11px">${esc(l.recipient)}</td><td>${esc(l.event)}</td>
+        <td><span class="tag ${l.status==='sent'?'ok':'bad'}">${esc(l.status)}</span></td></tr>`).join('')}</table></div>
+      ${log.length?'':'<div class="empty"><b>No notifications yet</b></div>'}</div>`;
+  },
+  async _notifySend(){
+    const ch=$('#ntCh').value,to=$('#ntTo').value.trim(),msg=$('#ntMsg').value.trim();
+    if(!to||!msg)return toast('Recipient and message are required','bad');
+    if(Store.mode==='cloud'){
+      try{const j=await Store.api('notify',{channel:ch,to,message:msg,event:'manual'});
+        toast(j.ok?'Message sent via '+ch:'Send failed: '+(j.detail||'').slice(0,80),j.ok?'ok':'bad');
+      }catch(e){toast(e.message,'bad')}
+    }else{
+      await IDB.put('Notify_Log',{id:uid(),ts:nowISO(),channel:ch,recipient:to,event:'manual',message:msg,status:'queued (local)',detail:''});
+      toast('Logged locally — switch to Cloud mode to actually deliver','bad');
+    }
+    Views.notify();
+  },
+
+  /* ── CONNECTORS ── */
+  async connectors(){
+    const conns=Store.mode==='cloud'?await Store.list('Connectors',true).catch(()=>[]):await IDB.all('Connectors');
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Connectors</h2><div class="sub">Integrate NEXMART with accounting, e-commerce, ERP, and messaging systems</div></div>
+        <div class="actions"><button class="btn btn-primary btn-sm" onclick="Views.connForm()">+ Connector</button></div></div>
+      <div class="card"><h3>Outbound webhooks</h3>
+        <p class="note" style="margin-top:0">NEXMART POSTs JSON to your endpoint on the events you subscribe to. Payload: <span class="mono">{source:"NEXMART", event, ts, data}</span>. Events: <span class="mono">sale.completed · Products.created · Products.updated · report.daily · *</span> (all)</p>
+        <div class="tblwrap"><table><tr><th>Name</th><th>Endpoint</th><th>Events</th><th>Status</th><th></th></tr>
+        ${conns.map(c=>`<tr><td><b>${esc(c.name)}</b><br><small style="color:var(--ink-3)">${esc(c.type||'webhook')}</small></td>
+          <td class="mono" style="font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis">${esc(c.url)}</td>
+          <td class="mono" style="font-size:11px">${esc(c.events)}</td>
+          <td><span class="tag ${truthy(c.active)?'ok':'bad'}">${truthy(c.active)?'active':'off'}</span></td>
+          <td><button class="btn btn-ghost btn-sm" onclick="Views.connForm('${c.id}')">Edit</button></td></tr>`).join('')}</table></div>
+        ${conns.length?'':'<div class="empty"><b>No connectors yet</b>Point one at Zapier, Make, n8n, or your own API to sync with QuickBooks, Shopify, ERP, and more</div>'}</div>
+      <div class="card"><h3>Inbound API (other systems → NEXMART)</h3>
+        <p class="note" style="margin-top:0">External systems can push or pull data using your API key (Settings → Cloud config in the Config sheet):</p>
+        <p class="mono" style="font-size:11.5px;line-height:1.8;background:var(--paper);padding:12px;border-radius:8px;overflow-x:auto">
+        POST {your /exec URL}<br>{"action":"inbound_webhook","key":"API_KEY","entity":"Products","record":{...}}<br><br>
+        GET {your /exec URL}?action=export&key=API_KEY&entity=Sales</p></div>`;
+  },
+  async connForm(id){
+    const list=Store.mode==='cloud'?await Store.list('Connectors',true).catch(()=>[]):await IDB.all('Connectors');
+    const c=id?list.find(x=>x.id===id):{active:true,direction:'out',events:'sale.completed'};
+    modal(`<h3>${id?'Edit':'New'} connector</h3>
+      <label>Name</label><input id="cnName" value="${esc(c.name||'')}" placeholder="e.g. Zapier → QuickBooks">
+      <label>Endpoint URL</label><input id="cnUrl" class="mono" value="${esc(c.url||'')}" placeholder="https://hooks.zapier.com/…">
+      <div class="formgrid"><div><label>Type</label><select id="cnType"><option ${c.type==='webhook'?'selected':''}>webhook</option><option ${c.type==='zapier'?'selected':''}>zapier</option><option ${c.type==='make'?'selected':''}>make</option><option ${c.type==='erp'?'selected':''}>erp</option><option ${c.type==='ecommerce'?'selected':''}>ecommerce</option></select></div>
+      <div><label>Active</label><select id="cnAct"><option value="true" ${truthy(c.active)?'selected':''}>Yes</option><option value="false" ${!truthy(c.active)?'selected':''}>No</option></select></div></div>
+      <label>Events (comma separated, * for all)</label><input id="cnEv" class="mono" value="${esc(c.events||'')}">
+      <label>API key header (optional)</label><input id="cnKey" class="mono" value="${esc(c.api_key||'')}">
+      <div class="mact">${id?`<button class="btn btn-danger btn-sm" onclick="if(confirm('Delete connector?')){Store.remove('Connectors','${id}').then(()=>{closeModal();Views.connectors()})}">Delete</button>`:''}
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._connSave('${id||''}')">Save</button></div>`);
+  },
+  async _connSave(id){
+    const rec={id:id||undefined,name:$('#cnName').value.trim(),type:$('#cnType').value,direction:'out',
+      url:$('#cnUrl').value.trim(),api_key:$('#cnKey').value.trim(),events:$('#cnEv').value.trim()||'*',active:$('#cnAct').value==='true'};
+    if(!rec.name||!rec.url)return toast('Name and URL are required','bad');
+    await Store.save('Connectors',rec,!id);closeModal();toast('Connector saved','ok');Views.connectors();
+  },
+
+  /* ── USERS ── */
+  async users(){
+    const users=Store.mode==='cloud'?await Store.list('Users',true):await IDB.all('Users');
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Users & Roles</h2></div><div class="actions"><button class="btn btn-primary btn-sm" onclick="Views.userForm()">+ User</button></div></div>
+      <div class="card"><div class="tblwrap"><table><tr><th>User</th><th>Role</th><th>Status</th><th></th></tr>
+      ${users.map(u=>`<tr><td><b>${esc(u.name)}</b><br><small class="mono" style="color:var(--ink-3)">${esc(u.username)}</small></td>
+        <td><span class="tag info">${esc(u.role)}</span></td>
+        <td><span class="tag ${truthy(u.active)?'ok':'bad'}">${truthy(u.active)?'active':'disabled'}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="Views.userForm('${u.id}')">Edit</button></td></tr>`).join('')}</table></div>
+      <p class="note">Roles — <b>admin</b>: everything · <b>manager</b>: operations + reports · <b>cashier</b>: POS only · <b>stock</b>: products & inventory only</p></div>`;
+    Views._users=users;
+  },
+  userForm(id){
+    const u=id?Views._users.find(x=>x.id===id):{active:true,role:'cashier'};
+    modal(`<h3>${id?'Edit':'New'} user</h3>
+      <label>Full name</label><input id="ufName" value="${esc(u.name||'')}">
+      <div class="formgrid"><div><label>Username</label><input id="ufUser" value="${esc(u.username||'')}" ${id?'disabled':''}></div>
+      <div><label>Role</label><select id="ufRole">${Object.keys(CONFIG.roles).map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}</select></div>
+      <div><label>Password ${id?'(leave blank to keep)':''}</label><input id="ufPass" type="password"></div>
+      <div><label>Active</label><select id="ufAct"><option value="true" ${truthy(u.active)?'selected':''}>Yes</option><option value="false" ${!truthy(u.active)?'selected':''}>No</option></select></div></div>
+      <div class="mact"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._userSave('${id||''}')">Save</button></div>`);
+  },
+  async _userSave(id){
+    const name=$('#ufName').value.trim(),username=$('#ufUser').value.trim(),role=$('#ufRole').value,pw=$('#ufPass').value,active=$('#ufAct').value==='true';
+    if(!name||!username)return toast('Name and username required','bad');
+    if(!id&&!pw)return toast('Password required for new user','bad');
+    if(Store.mode==='cloud'){
+      const rec={id:id||undefined,name,username,role,active};if(pw)rec.password=pw;
+      await Store.api(id?'update':'create',{entity:'Users',record:rec});
+    }else{
+      const old=id?Views._users.find(x=>x.id===id):null;
+      const rec=old?{...old,name,role,active}:{id:uid(),username,name,role,active,email:'',phone:'',created_at:nowISO()};
+      if(pw){rec.salt=uid();rec.pass_hash=await sha256(pw+rec.salt)}
+      await IDB.put('Users',rec);
+    }
+    closeModal();toast('User saved','ok');Views.users();
+  },
+
+  /* ── SETTINGS ── */
+  async settings(){
+    let cloudCfg=null;
+    if(Store.mode==='cloud'){try{cloudCfg=(await Store.api('get_config',{})).config}catch(e){}}
+    const pending=(await IDB.all('SyncQueue')).length;
+    $('#main').innerHTML=`
+      <div class="pagehead"><div><h2>Settings</h2><div class="sub">Developed by NEXARCH · Powered by CYRABELL · ${Store.mode==='cloud'?'LITE cloud tier':'local device tier'}</div></div></div>
+      <div class="grid2">
+        <div class="card"><h3>Data & sync</h3>
+          <label>Data mode (applies at next sign-in)</label>
+          <div class="switch"><button class="${Store.mode==='local'?'on':''}">Local device</button><button class="${Store.mode==='cloud'?'on':''}">Cloud (Sheets)</button></div>
+          <p class="note"><b>Local:</b> everything lives in this device's IndexedDB — full offline POS, zero cloud dependency. Export CSV to open in <b>Excel</b> anytime.<br>
+          <b>Cloud:</b> Google Sheets is the system of record via Apps Script; this device keeps a mirror and an offline queue.<br>
+          Pending sync operations: <b>${pending}</b></p>
+          ${pending?'<button class="btn btn-primary btn-sm" onclick="Store.flushQueue().then(()=>Views.settings())">Sync now</button>':''}
+          <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+          <label>Backup / restore (Excel workflow)</label>
+          <div class="actions">
+            <button class="btn btn-ghost btn-sm" onclick="Views._backup()">⬇ Full backup (JSON)</button>
+            <input type="file" id="bkFile" accept=".json" hidden onchange="Views._restore(this.files[0])">
+            <button class="btn btn-ghost btn-sm" onclick="$('#bkFile').click()">⬆ Restore</button>
+          </div>
+          <p class="note">Per-module CSV exports (Products, Customers, Sales) open natively in Excel and re-import cleanly.</p>
+        </div>
+        <div class="card"><h3>Cloud backend</h3>
+          <label>Apps Script Web App URL</label>
+          <input class="mono" value="${esc(CONFIG.api_url)}" disabled>
+          <p class="note">Set once in the <span class="mono">CONFIG.api_url</span> block at the top of <span class="mono">index.html</span>, commit to GitHub Pages, done.</p>
+          ${cloudCfg?`<hr style="border:none;border-top:1px solid var(--line);margin:14px 0"><h3>Store & notification config (admin)</h3>
+            ${['store_name','currency','admin_email','admin_phone','low_stock_notify','daily_summary_hour','sms_provider','sms_api_key','sms_sender','wa_phone_id','wa_token','viber_token','messenger_token'].map(k=>
+              `<label>${k.replace(/_/g,' ')}</label><input class="mono cfgIn" data-k="${k}" value="${esc(cloudCfg[k]??'')}" ${cloudCfg[k]===undefined?'placeholder="admin only"':''}>`).join('')}
+            <button class="btn btn-primary" style="margin-top:14px" onclick="Views._saveCfg()">Save cloud config</button>`
+          :`<p class="note">${Store.mode==='cloud'?'Config unavailable.':'Sign in with Cloud mode to edit store name, currency, alert channels, and SMS/WhatsApp/Viber/Messenger provider keys.'}</p>`}
+        </div>
+      </div>
+      <div class="card"><h3>Scanner hardware</h3>
+        <table><tr><th>Device</th><th>How it works here</th></tr>
+        <tr><td><b>Handheld barcode gun</b> (USB/Bluetooth)</td><td>Works instantly — guns type as keyboards. Scan from any screen; NEXMART detects the rapid-keystroke pattern and routes it (POS → adds to cart, elsewhere → product lookup).</td></tr>
+        <tr><td><b>Phone camera</b></td><td>Tap the camera icon in the scan bar. EAN/UPC/Code-128/QR supported on Chrome (Android) and Safari 17+ (iOS).</td></tr>
+        <tr><td><b>RFID reader</b> (UHF/HF, keyboard-wedge)</td><td>Pair like a keyboard, store the tag EPC in each product's RFID field, then scans resolve exactly like barcodes. Use Inventory → "RFID cycle count" to set absolute counts from a sweep.</td></tr></table>
+      </div>`;
+  },
+  async _saveCfg(){
+    const cfg={};$$('.cfgIn').forEach(i=>{if(i.value!=='')cfg[i.dataset.k]=i.value});
+    try{await Store.api('set_config',{config:cfg});toast('Cloud config saved','ok')}catch(e){toast(e.message,'bad')}
+  },
+  async _backup(){
+    const out={app:'NEXMART',version:'1.0.0',exported:nowISO(),data:{}};
+    for(const s of IDB.STORES)out.data[s]=await IDB.all(s);
+    const blob=new Blob([JSON.stringify(out,null,1)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexmart-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();
+    toast('Backup downloaded','ok');
+  },
+  _restore(file){
+    if(!file)return;
+    const rd=new FileReader();
+    rd.onload=async()=>{try{
+      const j=JSON.parse(rd.result);
+      if(j.app!=='NEXMART')throw new Error('Not a NEXMART backup');
+      for(const s of Object.keys(j.data))for(const rec of j.data[s])await IDB.put(s,rec);
+      toast('Backup restored','ok');Views.settings();
+    }catch(e){toast('Restore failed: '+e.message,'bad')}};
+    rd.readAsText(file);
+  }
+};
+
+/* ═══════════ BOOT ═══════════ */
+(async()=>{
+  await IDB.open();
+  Scanner.init();
+  if(!Auth.restore()){$('#lgUser').focus()}
+})();
+</script>
+</body>
+</html>
