@@ -1266,6 +1266,388 @@ const Views={
     rd.readAsText(file);
   }
 };
+/* ════════════════════════════════════════════════════════════════════════
+   NEXMART · B2B SUPPLY CHANNEL  —  addon module
+   The buyer half of the NEXRICE ⇄ NEXMART trade protocol.
+
+   INSTALL (3 edits to index.html):
+   1. IDB.STORES  → append  'B2B_Deals','B2B_Log'
+   2. IDB.open()  → bump    indexedDB.open('nexmart', 2)
+   3. CONFIG.roles → add 'b2b' to the admin and manager arrays
+   Then paste this whole file as a <script> block immediately BEFORE the
+   existing boot IIFE at the bottom of index.html.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ── Channel configuration ─────────────────────────────────────────────── */
+CONFIG.b2b = {
+  supplier_name : 'NEXRICE Grains Trading',
+  supplier_url  : '',      // NEXRICE Apps Script /exec — set in Settings → Supply
+  trade_key     : '',      // shared secret, must match NEXRICE
+  auto_order    : false,   // raise a PR automatically when stock hits reorder level
+  auto_ack      : true,    // acknowledge an incoming quote without a human
+  auto_po       : false,   // issue the PO automatically once the quote is acknowledged
+  dp_percent    : 50,      // downpayment we intend to remit
+  notify        : ['log','email']
+};
+
+/* Ten stages — identical keys on both systems, so the two ledgers agree. */
+const B2B_STAGES = [
+  {k:'PR',        l:'PR sent',            by:'mart'},
+  {k:'QUOTE',     l:'Quote received',     by:'rice'},
+  {k:'QACK',      l:'Quote acknowledged', by:'mart'},
+  {k:'PO',        l:'PO issued',          by:'mart'},
+  {k:'PAY',       l:'Payment arrangement',by:'mart'},
+  {k:'PREP',      l:'Supplier preparing', by:'rice'},
+  {k:'DISPATCH',  l:'In transit',         by:'rice'},
+  {k:'DELIVERED', l:'Received & signed',  by:'mart'},
+  {k:'BAL',       l:'Balance due',        by:'mart'},
+  {k:'DONE',      l:'Closed both systems',by:'both'}
+];
+const BS  = k => B2B_STAGES.find(s => s.k === k);
+const BSI = k => B2B_STAGES.findIndex(s => s.k === k);
+
+/* ── Wire: our Sheet, their Sheet, shared log ──────────────────────────── */
+const B2B = {
+  async log(deal, ev, note, dir){
+    const e = {id:uid(), ts:nowISO(), deal:deal.id, ref:deal.ref||'', event:ev,
+               note:note||'', direction:dir, user:Auth.user.username};
+    await IDB.put('B2B_Log', e);
+    if (Store.mode === 'cloud') await Store.queueOrSend('b2b_log', e);
+    return e;
+  },
+  /* Push one of OUR stage changes up to NEXRICE. */
+  async push(deal, ev, note){
+    await B2B.log(deal, ev, note, 'out');
+    if (Store.mode !== 'cloud' || !Store.online || !CONFIG.b2b.supplier_url) return false;
+    try{
+      const j = await Store.api('b2b_push', {
+        url: CONFIG.b2b.supplier_url, tradeKey: CONFIG.b2b.trade_key,
+        event: ev, note: note || '', deal
+      });
+      return !!j.ok;
+    }catch(e){ return false; }
+  },
+  /* Pull stage changes NEXRICE has made since we last looked. */
+  async poll(){
+    if (Store.mode !== 'cloud') return toast('Supply polling needs Cloud mode','bad');
+    try{
+      const j = await Store.api('b2b_poll', {});
+      let n = 0;
+      for (const ev of (j.events || [])) if (await B2B.ingest(ev)) n++;
+      toast(n ? `${n} update(s) from ${CONFIG.b2b.supplier_name}` : 'Nothing new from the supplier', n?'ok':'');
+      Views.b2b();
+    }catch(e){ toast(e.message,'bad'); }
+  },
+  /* Apply an inbound event from NEXRICE to our copy of the deal. */
+  async ingest(ev){
+    const incoming = ev.deal || {};
+    const deals = await IDB.all('B2B_Deals');
+    const d = deals.find(x => x.ref === incoming.ref || x.id === incoming.id);
+    if (!d) return false;
+    if (d.stage === incoming.stage) return false;            // already applied
+
+    d.stage  = incoming.stage;
+    d.total  = Number(incoming.total || d.total || 0);
+    d.qty    = Number(incoming.sacks || d.qty || 0);
+    d.quote  = incoming.quote || d.quote || '';
+    d.dr     = incoming.dr || d.dr || '';
+    d.history = d.history || [];
+    d.history.push({stage:d.stage, ts:nowISO(), by:'NEXRICE'});
+
+    await IDB.put('B2B_Deals', d);
+    await B2B.log(d, 'stage.' + d.stage, BS(d.stage).l, 'in');
+    B2B.notify(d, d.stage);
+
+    /* A quote landed — acknowledge it if the operator asked us to. */
+    if (d.stage === 'QUOTE' && CONFIG.b2b.auto_ack) setTimeout(() => B2B.act(d.id,'QACK'), 600);
+    return true;
+  },
+  notify(d, stage){
+    const msg = `NEXMART ▸ ${d.ref} — ${BS(stage).l}. ${d.qty} sacks · ${money(d.total)}`
+      + (stage==='PAY' ? `. Downpayment ${money(d.total*CONFIG.b2b.dp_percent/100)} to remit.` : '')
+      + (stage==='DELIVERED' ? '. Goods received into inventory.' : '')
+      + (stage==='DONE' ? '. Settled and closed.' : '');
+    CONFIG.b2b.notify.filter(c => c !== 'log').forEach(async ch => {
+      if (Store.mode === 'cloud'){
+        try{ await Store.api('notify',{channel:ch, to:'', message:msg, event:'b2b.'+stage}); }catch(e){}
+      }else{
+        await IDB.put('Notify_Log',{id:uid(),ts:nowISO(),channel:ch,recipient:'supplier',
+          event:'b2b.'+stage,message:msg,status:'queued (local)',detail:''});
+      }
+    });
+  },
+
+  /* ── Raise a purchase request ─────────────────────────────────────────── */
+  async raise(lines, source){
+    if (!lines.length) return toast('Nothing to request','bad');
+    const d = {
+      id: uid(),
+      ref: 'PR-NM-' + Date.now().toString(36).toUpperCase().slice(-5),
+      supplier: CONFIG.b2b.supplier_name,
+      stage: 'PR', source: source || 'Manual',
+      lines, qty: lines.reduce((a,l)=>a+Number(l.qty),0),
+      total: 0, paid: 0, dp_percent: CONFIG.b2b.dp_percent,
+      created_at: nowISO(),
+      history: [{stage:'PR', ts:nowISO(), by:Auth.user.username}]
+    };
+    await IDB.put('B2B_Deals', d);
+    if (Store.mode === 'cloud') await Store.queueOrSend('create', {entity:'B2B_Deals', record:d});
+    await B2B.push(d, 'pr.created', `${lines.length} line(s), ${d.qty} sacks requested.`);
+    B2B.notify(d, 'PR');
+    toast(`${d.ref} sent to ${CONFIG.b2b.supplier_name}`, 'ok');
+    return d;
+  },
+  /* Auto-replenish: everything at or below its reorder level, topped to 2× */
+  async autoOrder(silent){
+    const prods = (await Store.list('Products')).filter(p => truthy(p.active)
+      && Number(p.stock) <= Number(p.reorder_level||0));
+    if (!prods.length){ if(!silent) toast('Nothing is below its reorder level'); return null; }
+    const lines = prods.map(p => ({
+      product_id: p.id, sku: p.sku, name: p.name,
+      qty: Math.max(Number(p.reorder_level||0)*2 - Number(p.stock||0), 1)
+    }));
+    const d = await B2B.raise(lines, 'Auto-replenish');
+    if (d) toast(`Auto-order: ${lines.length} line(s) requested`, 'ok');
+    return d;
+  },
+
+  /* ── Our side of the state machine ────────────────────────────────────── */
+  async act(id, to, data){
+    const deals = await IDB.all('B2B_Deals');
+    const d = deals.find(x => x.id === id);
+    if (!d) return;
+
+    if (to === 'PAY')  d.payment_terms = (data && data.terms) || `${d.dp_percent}% down, balance on delivery`;
+
+    if (to === 'PREP'){                              // we have remitted money
+      const amt = (data && data.amount != null) ? data.amount : d.total * d.dp_percent / 100;
+      d.paid = Number(d.paid||0) + amt;
+      d.pay_mode = d.paid >= d.total ? 'Full' : 'Downpayment';
+      d.paid_at = nowISO();
+    }
+
+    if (to === 'DELIVERED'){                         // goods physically received
+      d.received_by = Auth.user.username;
+      d.received_at = nowISO();
+      const prods = await Store.list('Products');
+      for (const l of d.lines){
+        let p = prods.find(x => x.id === l.product_id) || prods.find(x => x.sku === l.sku);
+        if (!p){                                     // supplier line we have never stocked
+          p = {id:uid(), sku:l.sku||('SKU-'+uid().slice(0,6).toUpperCase()), barcode:'', rfid_tag:'',
+               name:l.name, category:'Grocery', supplier_id:'', cost:Number(l.price||0),
+               price:Math.round(Number(l.price||0)*1.15), tax_rate:CONFIG.tax_rate, stock:0,
+               reorder_level:Math.ceil(Number(l.qty)/2), unit:'sack', image_url:'', active:true};
+        }
+        p.stock = Number(p.stock||0) + Number(l.qty);
+        if (l.price) p.cost = Number(l.price);       // supplier's quoted price is our cost
+        p.updated_at = nowISO();
+        await Store.save('Products', p, false);
+        await IDB.put('Inventory_Log', {id:uid(), ts:nowISO(), product_id:p.id, type:'receive',
+          qty:Number(l.qty), ref:d.ref, user:Auth.user.username, note:'NEXRICE delivery'});
+        if (Store.mode === 'cloud') await Store.queueOrSend('stock_move',
+          {product_id:p.id, type:'receive', qty:Number(l.qty), ref:d.ref});
+      }
+      if (Number(d.paid||0) >= Number(d.total||0)) to = 'DONE';   // paid in full — no balance stage
+    }
+
+    if (to === 'DONE'){
+      d.paid = d.total;
+      d.closed_at = nowISO();
+    }
+
+    d.stage = to;
+    d.history = d.history || [];
+    d.history.push({stage:to, ts:nowISO(), by:Auth.user.username});
+    await IDB.put('B2B_Deals', d);
+    if (Store.mode === 'cloud') await Store.queueOrSend('update', {entity:'B2B_Deals', record:d});
+    await B2B.push(d, 'stage.' + to, BS(to).l + ((data&&data.note) ? ' — ' + data.note : ''));
+    B2B.notify(d, to);
+    toast(`${d.ref} → ${BS(to).l}`, 'ok');
+
+    if (to === 'QACK' && CONFIG.b2b.auto_po) setTimeout(() => B2B.act(id, 'PO'), 600);
+    Views.b2b();
+  }
+};
+
+/* ── Nav registration ──────────────────────────────────────────────────── */
+ICONS.b2b = '<path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 5h13"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/>';
+MENU.find(m => m[0]==='MANAGE')[1].push(['b2b','Supply · NEXRICE']);
+
+/* ── View ──────────────────────────────────────────────────────────────── */
+Views.b2b = async function(){
+  const deals = (await IDB.all('B2B_Deals')).sort((a,b)=>String(b.created_at).localeCompare(a.created_at));
+  const log   = (await IDB.all('B2B_Log')).sort((a,b)=>String(b.ts).localeCompare(a.ts)).slice(0,12);
+  const prods = await Store.list('Products');
+  const low   = prods.filter(p => truthy(p.active) && Number(p.stock) <= Number(p.reorder_level||0));
+  const counts = {};
+  deals.forEach(d => counts[d.stage] = (counts[d.stage]||0)+1);
+  const linked = !!(CONFIG.b2b.supplier_url && Store.mode==='cloud');
+  const open = deals.filter(d => d.stage !== 'DONE');
+  const committed = open.reduce((a,d)=>a+Number(d.total||0),0);
+  const owing = open.reduce((a,d)=>a+Math.max(0,Number(d.total||0)-Number(d.paid||0)),0);
+
+  $('#main').innerHTML = `
+    <div class="pagehead">
+      <div><h2>Supply Channel</h2><div class="sub">${esc(CONFIG.b2b.supplier_name)} · ${linked?'linked':'not linked — set the endpoint in Settings'}</div></div>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick="B2B.poll()">↻ Check for updates</button>
+        <button class="btn btn-ghost btn-sm" onclick="B2B.autoOrder()">⚡ Auto-order low stock${low.length?` (${low.length})`:''}</button>
+        <button class="btn btn-primary btn-sm" onclick="Views._prForm()">+ Purchase request</button>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="lbl">Open deals</div><div class="val">${open.length}</div><div class="sub">of ${deals.length} total</div></div>
+      <div class="kpi warn"><div class="lbl">Committed</div><div class="val">${money(committed)}</div><div class="sub">quoted &amp; in flight</div></div>
+      <div class="kpi bad"><div class="lbl">Owing supplier</div><div class="val">${money(owing)}</div><div class="sub">unpaid balance</div></div>
+      <div class="kpi ${low.length?'bad':'ok'}"><div class="lbl">Below reorder</div><div class="val">${low.length}</div><div class="sub">SKUs</div></div>
+    </div>
+
+    <div class="card"><h3>Pipeline</h3>
+      <div class="tblwrap"><div style="display:flex;gap:6px;min-width:680px">
+        ${B2B_STAGES.map(s=>`<div style="flex:1;min-width:62px;text-align:center;border:1px solid ${counts[s.k]?'var(--cyan)':'var(--line)'};background:${counts[s.k]?'#E2F7F9':'#fff'};border-radius:9px;padding:8px 4px">
+          <b style="font-family:var(--display);font-size:19px;display:block;color:var(--navy)">${counts[s.k]||0}</b>
+          <small style="font-family:var(--mono);font-size:8px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);line-height:1.3;display:block;margin-top:3px">${s.l}</small></div>`).join('')}
+      </div></div>
+    </div>
+
+    <div class="card"><h3>Deals</h3><div class="tblwrap"><table>
+      <tr><th>Reference</th><th>Stage</th><th class="num">Sacks</th><th class="num">Value</th><th class="num">Paid</th><th>Owner</th><th></th></tr>
+      ${deals.map(d=>{
+        const s = BS(d.stage), i = BSI(d.stage);
+        return `<tr><td><b>${esc(d.ref)}</b><br><small style="color:var(--ink-3)">${esc(d.source||'')} · step ${i+1}/10</small></td>
+          <td><span class="tag ${d.stage==='DONE'?'ok':s.by==='mart'?'warn':'info'}">${s.l}</span></td>
+          <td class="num">${d.qty||0}</td><td class="num">${d.total?money(d.total):'—'}</td>
+          <td class="num">${d.paid?money(d.paid):'—'}</td>
+          <td><span class="tag ${s.by==='rice'?'info':'warn'}">${s.by==='both'?'closed':s.by==='rice'?'NEXRICE':'us'}</span></td>
+          <td><button class="btn btn-ghost btn-sm" onclick="Views._dealSheet('${d.id}')">Open</button></td></tr>`;
+      }).join('')}
+    </table></div>${deals.length?'':'<div class="empty"><b>No deals yet</b>Raise a purchase request, or let auto-order do it when stock runs low</div>'}</div>
+
+    <div class="card"><h3>Trade log — direct system-to-system</h3><div class="tblwrap"><table>
+      <tr><th>When</th><th>Dir</th><th>Event</th><th>Reference</th><th>Note</th></tr>
+      ${log.map(l=>`<tr><td class="mono" style="font-size:11px">${dstr(l.ts)}</td>
+        <td><span class="tag ${l.direction==='in'?'info':'ok'}">${l.direction==='in'?'← NEXRICE':'→ NEXRICE'}</span></td>
+        <td class="mono" style="font-size:11.5px">${esc(l.event)}</td>
+        <td class="mono" style="font-size:11px">${esc(l.ref)}</td><td>${esc(l.note)}</td></tr>`).join('')}
+    </table></div>${log.length?'':'<div class="empty"><b>Nothing has crossed the wire yet</b></div>'}</div>`;
+
+  Views._b2bProds = prods;
+};
+
+/* ── Purchase-request builder ──────────────────────────────────────────── */
+Views._prLines = [];
+Views._prForm = function(){
+  Views._prLines = [];
+  modal(`<h3>Purchase request to ${esc(CONFIG.b2b.supplier_name)}</h3>
+    <label>Item</label>
+    <div style="display:flex;gap:8px">
+      <select id="prProd" style="flex:1">${Views._b2bProds.map(p=>`<option value="${p.id}">${esc(p.name)} — stock ${p.stock}</option>`).join('')}</select>
+      <input id="prQty" type="number" value="20" style="width:84px">
+      <button class="btn btn-ghost btn-sm" onclick="Views._prAdd()">Add</button>
+    </div>
+    <div id="prLines" style="margin-top:12px"></div>
+    <p class="note">NEXRICE prices the request and returns a quote. Nothing is committed until you issue a PO.</p>
+    <div class="mact"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="Views._prSend()">Send request</button></div>`);
+};
+Views._prAdd = function(){
+  const p = Views._b2bProds.find(x => x.id === $('#prProd').value);
+  const qty = Number($('#prQty').value||0);
+  if (!p || qty <= 0) return toast('Pick an item and a quantity','bad');
+  const hit = Views._prLines.find(l => l.product_id === p.id);
+  if (hit) hit.qty += qty;
+  else Views._prLines.push({product_id:p.id, sku:p.sku, name:p.name, qty});
+  Views._prDraw();
+};
+Views._prDraw = function(){
+  $('#prLines').innerHTML = Views._prLines.map((l,i)=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:6px 0;border-bottom:1px solid var(--line)">
+      <span><b>${l.qty}</b> × ${esc(l.name)}</span>
+      <button style="color:var(--bad);font-size:12px" onclick="Views._prLines.splice(${i},1);Views._prDraw()">remove</button>
+    </div>`).join('') || '<div class="empty" style="padding:14px">No lines yet</div>';
+};
+Views._prSend = async function(){
+  if (!Views._prLines.length) return toast('Add at least one line','bad');
+  await B2B.raise(Views._prLines, 'Manual');
+  closeModal(); Views.b2b();
+};
+
+/* ── Deal detail + our available actions ───────────────────────────────── */
+Views._dealSheet = async function(id){
+  const d = (await IDB.all('B2B_Deals')).find(x => x.id === id);
+  const i = BSI(d.stage);
+  const seen = k => (d.history||[]).find(h => h.stage === k);
+  const dp = Number(d.total||0) * Number(d.dp_percent||50) / 100;
+
+  /* Only the stages we own are actionable here. NEXRICE drives the rest. */
+  const MINE = {
+    QUOTE:     [`Acknowledge quote (${money(d.total)})`, 'QACK', null],
+    QACK:      ['Issue purchase order', 'PO', null],
+    PO:        ['Open payment arrangement', 'PAY', null],
+    PAY:       [`Remit downpayment (${money(dp)})`, 'PREP', {amount:dp}],
+    DELIVERED: ['Request final invoice', 'BAL', null],
+    BAL:       [`Settle balance (${money(Number(d.total||0)-Number(d.paid||0))})`, 'DONE', null]
+  };
+  const act = MINE[d.stage];
+  const waiting = {
+    PR:       'Waiting for NEXRICE to price the request and return a quote.',
+    PREP:     'NEXRICE is picking and packing. Nothing for us to do.',
+    DISPATCH: 'Goods are in transit. Acknowledge them when the truck arrives.',
+    DONE:     'Closed on both systems.'
+  }[d.stage];
+
+  modal(`<h3>${esc(d.ref)}</h3>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 14px">
+      <span class="tag info">${d.qty} sacks</span>
+      ${d.total?`<span class="tag info">${money(d.total)}</span>`:''}
+      ${d.quote?`<span class="tag info">${esc(d.quote)}</span>`:''}
+      ${d.paid?`<span class="tag ok">paid ${money(d.paid)}</span>`:''}
+      ${d.dr?`<span class="tag info">${esc(d.dr)}</span>`:''}
+    </div>
+    <table><tr><th>Item</th><th class="num">Sacks</th></tr>
+      ${(d.lines||[]).map(l=>`<tr><td>${esc(l.name)}</td><td class="num">${l.qty}</td></tr>`).join('')}</table>
+
+    <h3 style="margin-top:16px">Progress</h3>
+    <div style="border-left:2px solid var(--line);margin-left:6px;padding-left:14px;margin-top:8px">
+      ${B2B_STAGES.map((s,n)=>{
+        const h = seen(s.k);
+        return `<div style="position:relative;padding-bottom:12px">
+          <span style="position:absolute;left:-20px;top:4px;width:9px;height:9px;border-radius:50%;background:${h?(n===i?'var(--cyan)':'var(--ok)'):'#C3CEDD'}"></span>
+          <b style="font-size:13px">${s.l}</b>
+          <span class="tag ${s.by==='rice'?'info':'warn'}" style="margin-left:6px">${s.by==='both'?'both':s.by==='rice'?'NEXRICE':'us'}</span>
+          <br><small class="mono" style="color:var(--ink-3);font-size:11px">${h?dstr(h.ts):'pending'}</small>
+        </div>`;
+      }).join('')}
+    </div>
+
+    ${waiting?`<p class="note"><b>Status.</b> ${waiting}</p>`:''}
+    <div class="mact">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      ${act?`<button class="btn btn-primary" onclick="closeModal();B2B.act('${d.id}','${act[1]}',${JSON.stringify(act[2])})">${act[0]}</button>`:''}
+      ${d.stage==='PAY'?`<button class="btn btn-primary" style="background:var(--warn)" onclick="closeModal();B2B.act('${d.id}','PREP',{amount:${d.total}})">Pay in full (${money(d.total)})</button>`:''}
+      ${d.stage==='DISPATCH'?`<button class="btn btn-primary" onclick="closeModal();B2B.act('${d.id}','DELIVERED')">Acknowledge receipt → stock in</button>`:''}
+    </div>`);
+};
+
+/* ── Auto-order hook: fires whenever a sale drops a line to its reorder level ── */
+(function hookAutoOrder(){
+  const origFinish = POS.finish.bind(POS);
+  POS.finish = async function(method, paid){
+    await origFinish(method, paid);
+    if (!CONFIG.b2b.auto_order) return;
+    const prods = await Store.list('Products');
+    const low = prods.filter(p => truthy(p.active) && Number(p.stock) <= Number(p.reorder_level||0));
+    if (!low.length) return;
+    const deals = await IDB.all('B2B_Deals');
+    const openSkus = new Set(deals.filter(d => d.stage !== 'DONE')
+      .flatMap(d => (d.lines||[]).map(l => l.product_id)));
+    const need = low.filter(p => !openSkus.has(p.id));       // don't double-order
+    if (need.length) await B2B.autoOrder(true);
+  };
+})();
+
+
 
 /* ═══════════ BOOT ═══════════ */
 (async()=>{
